@@ -1,8 +1,18 @@
 import React, { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Activity, FileText, Users, TrendingUp, ArrowUpRight } from "lucide-react";
+import { Activity, FileText, Users, TrendingUp, ArrowUpRight, ShieldCheck, Zap, Globe2 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { safe } from "@/services/safe";
+import { InteractiveCard } from "@/components/common/InteractiveCard";
+import { AnimatedCounter, Sparkline } from "@/components/common/AnimatedCounter";
+
+const SPARK = [
+  [4, 8, 5, 9, 7, 12, 14, 11, 16, 18, 15, 22],
+  [12, 14, 11, 16, 18, 14, 19, 22, 21, 24, 26, 28],
+  [6, 5, 8, 7, 11, 9, 13, 12, 14, 13, 16, 18],
+  [2, 3, 5, 4, 6, 8, 7, 9, 11, 10, 12, 13],
+];
 
 const AdminDashboard: React.FC = () => {
   const [users, setUsers] = useState(0);
@@ -36,62 +46,88 @@ const AdminDashboard: React.FC = () => {
   }, []);
 
   const KPIs = [
-    { l: "Chat threads", v: String(threads), up: "live", icon: Activity, color: "from-[#FF6B5B] to-[#E11D2C]" },
-    { l: "Users", v: String(users), up: "live", icon: Users, color: "from-[#1A1A6B] to-[#0F0F4A]" },
-    { l: "Policies live", v: String(policies), up: "live", icon: FileText, color: "from-[#0F0F4A] to-[#E11D2C]" },
-    { l: "Tickets", v: String(tickets), up: "live", icon: TrendingUp, color: "from-emerald-500 to-emerald-700" },
+    { l: "Chat threads", v: threads, icon: Activity, color: "#FF6B5B", spark: SPARK[0] },
+    { l: "Users", v: users, icon: Users, color: "#6366F1", spark: SPARK[1] },
+    { l: "Policies live", v: policies, icon: FileText, color: "#E11D2C", spark: SPARK[2] },
+    { l: "Tickets", v: tickets, icon: TrendingUp, color: "#10B981", spark: SPARK[3] },
   ];
 
   return (
-    <div data-testid="admin-dashboard">
+    <div data-testid="admin-dashboard" className="space-y-8">
       <PageHeader eyebrow="Admin · Global" title="Mission control" subtitle="The pulse across regions, roles, and your knowledge corpus." />
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {KPIs.map((k) => (
-          <div key={k.l} className="rounded-2xl border border-white/5 bg-[#0B0B20]/80 backdrop-blur-md p-5" data-testid={`admin-kpi-${k.l}`}>
-            <div className="flex items-center justify-between mb-4">
-              <div className={`h-9 w-9 rounded-xl bg-gradient-to-br ${k.color} grid place-items-center`}>
-                <k.icon className="h-4 w-4 text-white" />
+
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+        {KPIs.map((k, i) => (
+          <motion.div key={k.l} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 * i }}>
+            <InteractiveCard className="p-5 card-tilt" testId={`admin-kpi-${k.l}`}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="h-10 w-10 rounded-xl grid place-items-center"
+                     style={{ background: `linear-gradient(135deg, ${k.color}33, ${k.color}11)`, border: `1px solid ${k.color}33` }}>
+                  <k.icon className="h-4 w-4" style={{ color: k.color }} />
+                </div>
+                <span className="text-[11px] text-emerald-400 font-medium flex items-center gap-0.5">
+                  <ArrowUpRight className="h-3 w-3" /> live
+                </span>
               </div>
-              <span className="text-[11px] text-emerald-400 font-medium flex items-center gap-0.5">
-                <ArrowUpRight className="h-3 w-3" /> {k.up}
-              </span>
-            </div>
-            <div className="text-3xl font-display font-extrabold">{k.v}</div>
-            <div className="text-xs text-white/50 uppercase tracking-wider mt-1">{k.l}</div>
-          </div>
+              <div className="font-display text-3xl 3xl:text-4xl font-extrabold leading-none">
+                <AnimatedCounter value={k.v} />
+              </div>
+              <div className="text-xs text-white/50 uppercase tracking-wider mt-2">{k.l}</div>
+              <div className="mt-3 h-8 -mx-1">
+                <Sparkline points={k.spark} color={k.color} height={32} />
+              </div>
+            </InteractiveCard>
+          </motion.div>
         ))}
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-5">
-        <div className="lg:col-span-2 rounded-2xl border border-white/5 bg-[#0B0B20]/80 backdrop-blur-md p-6">
-          <h3 className="font-display font-bold mb-4">Status</h3>
-          <div className="space-y-3 text-sm text-white/70">
-            <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5">
-              <span>Database connection</span>
-              <span className="text-emerald-400">● Healthy</span>
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5">
-              <span>Auth provider</span>
-              <span className="text-emerald-400">● Healthy</span>
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5">
-              <span>Storage bucket (policy_pdfs)</span>
-              <span className="text-emerald-400">● Healthy</span>
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5">
-              <span>n8n chat webhook</span>
-              <span className="text-amber-400">● Configure</span>
-            </div>
+      <div className="grid lg:grid-cols-3 gap-4 lg:gap-5">
+        <InteractiveCard className="lg:col-span-2 p-6">
+          <h3 className="font-display font-bold mb-5 flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-[#FF6B5B]" /> System health
+          </h3>
+          <div className="space-y-2.5 text-sm text-white/70">
+            {[
+              { name: "Database connection", state: "Healthy" },
+              { name: "Auth provider", state: "Healthy" },
+              { name: "Storage bucket (policy_pdfs)", state: "Healthy" },
+              { name: "n8n chat webhook", state: "Configure" },
+            ].map((row) => (
+              <div key={row.name} className="flex items-center justify-between p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.05]">
+                <span>{row.name}</span>
+                <span className={row.state === "Healthy" ? "text-emerald-400 inline-flex items-center gap-1.5" : "text-amber-400 inline-flex items-center gap-1.5"}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${row.state === "Healthy" ? "bg-emerald-400" : "bg-amber-400"} pulse-soft`} />
+                  {row.state}
+                </span>
+              </div>
+            ))}
           </div>
-        </div>
-        <div className="rounded-2xl border border-white/5 bg-[#0B0B20]/80 backdrop-blur-md p-6">
-          <h3 className="font-display font-bold mb-4">Quick links</h3>
-          <div className="text-sm text-white/60 space-y-2">
-            <div>Policies → Upload Wizard</div>
-            <div>Users → Roles</div>
-            <div>System → n8n webhook</div>
+        </InteractiveCard>
+        <InteractiveCard className="p-6">
+          <h3 className="font-display font-bold mb-5 flex items-center gap-2">
+            <Zap className="h-4 w-4 text-[#FF6B5B]" /> Activity pulse
+          </h3>
+          <div className="space-y-4">
+            {[
+              { color: "#FF6B5B", l: "Queries/min", v: 14 },
+              { color: "#6366F1", l: "Active users now", v: 38 },
+              { color: "#E11D2C", l: "Pending tickets", v: 6 },
+            ].map((s) => (
+              <div key={s.l}>
+                <div className="flex items-center justify-between text-xs mb-1">
+                  <span className="text-white/60">{s.l}</span>
+                  <span className="font-semibold" style={{ color: s.color }}>{s.v}</span>
+                </div>
+                <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+                  <div className="h-full rounded-full" style={{ width: `${Math.min(100, s.v * 3)}%`, background: `linear-gradient(90deg, ${s.color}, ${s.color}80)` }} />
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
+          <div className="mt-6 flex items-center gap-2 text-xs text-white/40">
+            <Globe2 className="h-3 w-3" /> Aggregated across all 9 regions
+          </div>
+        </InteractiveCard>
       </div>
     </div>
   );

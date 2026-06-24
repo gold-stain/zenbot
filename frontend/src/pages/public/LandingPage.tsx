@@ -33,14 +33,14 @@ const LandingPage: React.FC = () => {
     <PublicLayout>
       {/* HERO — Zensar-style bold left-aligned */}
       <section className="relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-6 pt-16 pb-24 lg:pt-24 lg:pb-32 grid lg:grid-cols-12 gap-12 items-center">
+        <div className="max-w-7xl 3xl:max-w-[1600px] mx-auto px-6 pt-16 pb-24 lg:pt-24 lg:pb-32 grid lg:grid-cols-12 gap-12 items-center">
           <div className="lg:col-span-7">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-50 border border-zinc-200 text-xs font-medium text-zinc-700 mb-7" data-testid="hero-pill">
               <span className="h-1.5 w-1.5 rounded-full bg-[#FF6B5B] animate-pulse" />
               Now serving 9 regions · Powered by your own policies
             </div>
 
-            <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[0.95] mb-6">
+            <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl 3xl:text-8xl font-extrabold tracking-tight leading-[0.95] mb-6">
               The HR <br className="hidden sm:block" />
               answer engine,
               <br />
