@@ -1,5 +1,5 @@
 import React from "react";
-import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { motion, useMotionValue, useSpring, useTransform, useReducedMotion } from "framer-motion";
 
 interface InteractiveCardProps {
   children: React.ReactNode;
@@ -17,6 +17,7 @@ export const InteractiveCard: React.FC<InteractiveCardProps> = ({
   glow = true,
   onClick,
 }) => {
+  const reduce = useReducedMotion();
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const xSpring = useSpring(x, { stiffness: 120, damping: 18 });
@@ -25,6 +26,7 @@ export const InteractiveCard: React.FC<InteractiveCardProps> = ({
   const rotateY = useTransform(xSpring, [-0.5, 0.5], [-4, 4]);
 
   const onMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (reduce) return;
     const rect = e.currentTarget.getBoundingClientRect();
     x.set((e.clientX - rect.left) / rect.width - 0.5);
     y.set((e.clientY - rect.top) / rect.height - 0.5);
