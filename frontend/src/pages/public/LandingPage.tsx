@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useLayoutEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -10,7 +10,7 @@ import { AIOrb } from "@/components/common/AIOrb";
 import { MeshBackground } from "@/components/common/MeshBackground";
 
 const LandingPage: React.FC = () => {
-  useEffect(() => {
+  useLayoutEffect(() => {
     document.documentElement.classList.add("dark");
     return () => { document.documentElement.classList.remove("dark"); };
   }, []);
