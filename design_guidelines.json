@@ -1,0 +1,127 @@
+{
+  "theme": {
+    "archetype": "5 (Luxury / Premium Enterprise)",
+    "description": "Hybrid design: A pristine, high-contrast light theme for public marketing/auth pages conveying trust, transitioning into a deeply immersive, 'futuristic dark' theme for the authenticated app (dashboard/chat) focusing on deep navy backgrounds, glassmorphism, and glowing accents.",
+    "mode": "hybrid"
+  },
+  "colors": {
+    "brand": {
+      "navy": "#1A1A6B",
+      "coral": "#FF6B5B",
+      "red": "#E11D2C",
+      "white": "#FFFFFF"
+    },
+    "light_mode": {
+      "background": "#FFFFFF",
+      "surface": "#F8F9FA",
+      "primary": "#1A1A6B",
+      "secondary": "#FF6B5B",
+      "accent": "#E11D2C",
+      "text_primary": "#0A0A0A",
+      "text_secondary": "#4B5563",
+      "border": "#E5E7EB"
+    },
+    "dark_mode": {
+      "background": "#050514",
+      "surface": "#0B0B20",
+      "surface_elevated": "#12123A",
+      "primary": "#FF6B5B",
+      "secondary": "#E11D2C",
+      "accent": "#FF6B5B",
+      "text_primary": "#F8FAFC",
+      "text_secondary": "#94A3B8",
+      "border": "#1E2943"
+    }
+  },
+  "typography": {
+    "headings": {
+      "font_family": "Outfit, sans-serif",
+      "weights": ["600", "700", "800"],
+      "tracking": "tracking-tight"
+    },
+    "body": {
+      "font_family": "IBM Plex Sans, sans-serif",
+      "weights": ["400", "500", "600"]
+    },
+    "mono": {
+      "font_family": "JetBrains Mono, monospace"
+    },
+    "scale": {
+      "h1": "text-4xl sm:text-5xl lg:text-6xl",
+      "h2": "text-2xl sm:text-3xl lg:text-4xl",
+      "h3": "text-xl sm:text-2xl",
+      "h4": "text-lg sm:text-xl",
+      "body": "text-base",
+      "small": "text-sm"
+    }
+  },
+  "layout_and_spacing": {
+    "spacing_scale": "Generous spacing. Use p-4, p-6, p-8 for inner card paddings, and py-12 to py-24 for marketing sections.",
+    "public_pages": {
+      "grid": "Bento grid (Tetris style) with asymmetrical layouts",
+      "container": "max-w-7xl mx-auto px-6"
+    },
+    "app_pages": {
+      "sidebar": "Mini-sidebar collapsing to icons, dark surface, glowing active states, bordered by border-white/10",
+      "header": "Glassmorphism sticky header (backdrop-blur-xl bg-[#050514]/70 in dark mode)",
+      "content": "Dense 'Control Room' bento grid with tight gaps (gap-4 or gap-6) for dashboards"
+    },
+    "radius": {
+      "large": "rounded-2xl",
+      "medium": "rounded-xl",
+      "pill": "rounded-full"
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-gradient-to-r from-[#FF6B5B] to-[#E11D2C] text-white hover:brightness-110 transition-all duration-300 shadow-lg shadow-[#FF6B5B]/20",
+      "secondary": "border-2 border-[#1A1A6B] text-[#1A1A6B] dark:border-white/20 dark:text-white dark:hover:bg-white/5",
+      "ghost": "hover:bg-black/5 dark:hover:bg-white/10 text-current"
+    },
+    "cards": {
+      "light": "bg-white shadow-sm border border-gray-100 rounded-2xl",
+      "dark": "bg-[#0B0B20] border border-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.3)] backdrop-blur-md rounded-2xl hover:border-white/10 transition-colors"
+    },
+    "chat_interface": {
+      "user_bubble": "bg-[#1A1A6B] text-white rounded-2xl rounded-tr-sm px-5 py-3 shadow-md",
+      "ai_bubble": "bg-transparent text-gray-800 dark:text-gray-200 px-5 py-3 border-l-2 border-[#FF6B5B]",
+      "citation_chip": "inline-flex items-center text-xs bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-full px-3 py-1 mt-2 text-gray-600 dark:text-gray-400 hover:text-[#FF6B5B] dark:hover:text-[#FF6B5B] hover:border-[#FF6B5B]/50 cursor-pointer transition-colors",
+      "input_area": "bg-white dark:bg-[#0B0B20] border border-gray-200 dark:border-white/10 rounded-full pl-6 pr-2 py-2 flex items-center shadow-lg dark:shadow-[0_0_20px_rgba(255,107,91,0.05)]",
+      "voice_button": "bg-gradient-to-r from-[#FF6B5B] to-[#E11D2C] text-white rounded-full p-3 hover:scale-105 transition-transform shadow-lg shadow-[#FF6B5B]/30",
+      "portal_chip": "flex items-center gap-2 px-3 py-1.5 bg-[#1A1A6B]/10 dark:bg-[#1A1A6B]/30 text-[#1A1A6B] dark:text-[#FF6B5B] rounded-lg text-sm font-medium hover:bg-[#1A1A6B]/20 transition-colors cursor-pointer"
+    },
+    "forms": {
+      "input": "bg-gray-50 dark:bg-[#12123A] border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-[#FF6B5B] focus:border-transparent transition-all",
+      "label": "text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+    },
+    "badges": {
+      "role_hr": "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+      "role_admin": "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+      "region": "bg-gray-100 text-gray-700 dark:bg-white/5 dark:text-gray-300 border border-gray-200 dark:border-white/10"
+    }
+  },
+  "motion": {
+    "hover": "transition-all duration-300 ease-out",
+    "chat_bubbles": "initial: { opacity: 0, y: 10 }, animate: { opacity: 1, y: 0 }",
+    "glass_panels": "backdrop-blur-xl backdrop-saturate-150"
+  },
+  "media": {
+    "images": {
+      "hero_abstract_dark": "https://images.unsplash.com/photo-1646800186869-95062dd5008c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzNTl8MHwxfHNlYXJjaHwyfHxhYnN0cmFjdCUyMGRhcmslMjBmdXR1cmlzdGljJTIwZGF0YSUyMG5vZGVzJTIwZ2xvd2luZ3xlbnwwfHx8fDE3ODIyNjIwNTl8MA&ixlib=rb-4.1.0&q=85",
+      "corporate_office": "https://images.pexels.com/photos/17057647/pexels-photo-17057647.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+    }
+  },
+  "testing": {
+    "data_testid_requirement": "All interactive elements (buttons, links, inputs, chat components, chips) MUST include data-testid attribute in kebab-case."
+  },
+  "instructions_to_main_agent": [
+    "Install lucide-react, framer-motion, clsx, tailwind-merge.",
+    "Configure Tailwind config with the custom colors (navy, coral, red) under the 'extend.colors' section.",
+    "Include 'Outfit' (for headings) and 'IBM Plex Sans' (for body) from Google Fonts in index.html.",
+    "Implement the 'Hybrid' mode architecture: auth/landing pages strictly use the light theme styling, while the authenticated app (dashboard, chat, HR/Admin) strictly uses the dark futuristic styling as defined in dark_mode variables.",
+    "The chat interface must feel alive: implement a typewriter effect for AI text streaming, smooth Framer Motion list additions for chat messages, and styled citation chips.",
+    "Always use 'data-testid' on interactive elements for automated testing compatibility.",
+    "Ensure Shadcn UI components are customized to eliminate standard Vercel styles; apply our rounded-xl, glassmorphism, and color borders.",
+    "Ensure file extensions are .js / .jsx, not .tsx."
+  ]
+}
