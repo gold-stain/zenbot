@@ -1,0 +1,40 @@
+{
+  "summary": "Iter 6 verified: header anchor-nav, scroll-to-section behavior, pillars section, HeroChatDemo (mock-routed chat) and route guards all work. Backend 4/4 PASS. 35/36 frontend checks PASS. ONE CRITICAL BUG: the StrictMode guard claimed in the review request is NOT implemented in HeroChatDemo.tsx — the seeded assistant reply ('You have 4 casual leaves...') is duplicated on mount (assistant message count == 2, expected 1). Clearly visible in mobile screenshot. All other behavior (nav testids, smooth-scroll to #capabilities / #how-it-works / #pillars / #try-it, 4 pillar cards with exact titles, keyword routing wfh→Hybrid Work Policy, payslip→27 Feb 2026, fallback→RAG/n8n, quick chip click adds reply, mobile no-overflow, header-nav display:none on mobile, /app/dashboard→/sign-in redirect, /sign-in renders) is correct.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "HeroChatDemo",
+        "issue": "Seeded assistant reply about leaves is rendered TWICE on landing page mount. React StrictMode double-invokes the empty-deps useEffect at lines 62-66 of /app/frontend/src/components/common/HeroChatDemo.tsx and there is NO guard ref despite the PRD claim ('Guard ref added to HeroChatDemo so React StrictMode double-effect doesn't duplicate the seeded reply'). Result: two assistant bubbles with '4 casual leaves and 8 earned leaves...' both showing the same citation 'India-Leave-v3.2.pdf · §4.1 · p.12' — visually wrong and confusing on mobile (visible in screenshot). Assistant message count is 2 after settle; expected 1.",
+        "selector": "[data-testid^=\"demo-msg-ai-\"]",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Implement the missing StrictMode guard in /app/frontend/src/components/common/HeroChatDemo.tsx. Suggested fix: add a useRef flag and early-return on second effect run, e.g.:\n\n  const seededRef = useRef(false);\n  useEffect(() => {\n    if (seededRef.current) return;\n    seededRef.current = true;\n    const reply = CANNED.leave;\n    streamAssistant(reply.text, reply.citation, reply.portals);\n  }, []);\n\nAfter the fix, the assistant message count after mount must be exactly 1 (not 2)."
+  ],
+  "critical_code_review_comments": [
+    "HeroChatDemo.tsx line 62-66: the comment says 'Stream the seeded reply once on mount' but in React 18 StrictMode (CRA dev + many prod builds), the empty-deps effect fires twice, producing two assistant bubbles. The PRD explicitly claims a guard ref was added — it is not in the committed code. This is a P0 polish bug because it is the very first thing a visitor sees in the hero.",
+    "HeroChatDemo.tsx line 94-102 send(): no abort/cancellation if user spams quick chips while a previous reply is still streaming. busy gate at line 96 prevents new sends while streaming, which is good — but the seeded mount-time stream also sets busy=true, so the user briefly cannot type for ~2s after page load. Acceptable for demo but worth noting.",
+    "HeroChatDemo.tsx renderBold (line 122) does naive ** parsing — fine for canned content, but if any future canned text contains a stray '**' the parser will mismatch. Low priority.",
+    "LandingPage.tsx unchanged from iter 5 review otherwise — useLayoutEffect for the 'dark' class is now correctly applied (line 14). Good fix from iter 5 feedback."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100% (4/4)",
+    "frontend": "97% (35/36) — only failure is the StrictMode duplicate seeded reply"
+  },
+  "test_credentials": "Not required — only public surface tested.",
+  "seed_data_creation": "None.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "After main agent adds the guard ref in HeroChatDemo.tsx, re-run the playwright check that counts elements matching [data-testid^=\"demo-msg-ai-\"] right after the seeded stream settles (~3.5s after load). Expected count: 1. All other 35 checks already pass and do not need re-running unless the file changes. Backend regression suite /app/backend/tests/backend_test.py is green. Chat backend remains MOCKED (keyword-routed canned responses for leave/wfh/payslip/fallback) — flagged in the review request.",
+  "rca of the issue": "Bug: Seeded assistant reply duplicated under the orb on landing page.\nRoot cause: /app/frontend/src/components/common/HeroChatDemo.tsx lines 62-66 contains an empty-deps useEffect that calls streamAssistant() without any guard. React 18 StrictMode (and even some HMR scenarios in prod-like builds) double-invokes empty-deps mount effects, so streamAssistant runs twice → two assistant bubbles are appended via setMessages. The PRD entry 6 says 'Guard ref added' but no useRef-based guard exists in the committed file.\nReproduction: Load https://zensar-hr-connect.preview.emergentagent.com/?b=v7, wait 3 seconds, count elements [data-testid^=\"demo-msg-ai-\"] — returns 2 (also visually obvious on mobile screenshot).\nMitigation: Add a useRef boolean flag set on first run and early-return on subsequent runs (see action_items)."
+}

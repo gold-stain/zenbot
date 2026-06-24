@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { AIOrb } from "@/components/common/AIOrb";
 import { MeshBackground } from "@/components/common/MeshBackground";
+import { HeroChatDemo } from "@/components/common/HeroChatDemo";
 
 const LandingPage: React.FC = () => {
   useLayoutEffect(() => {
@@ -20,7 +21,7 @@ const LandingPage: React.FC = () => {
       <MeshBackground variant="marketing" />
 
       {/* NAV */}
-      <header className="relative z-20 px-6 lg:px-10 4xl:px-16 py-5 flex items-center justify-between">
+      <header className="sticky top-0 z-30 px-6 lg:px-10 4xl:px-16 py-4 flex items-center justify-between bg-[#03030A]/70 backdrop-blur-xl border-b border-white/[0.05]">
         <Link to="/" className="flex items-center gap-2.5" data-testid="public-logo">
           <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#FF6B5B] to-[#E11D2C] grid place-items-center shadow-[0_0_24px_rgba(255,107,91,0.45)]">
             <Sparkles className="h-4 w-4 text-white" />
@@ -30,6 +31,20 @@ const LandingPage: React.FC = () => {
             <div className="text-[10px] uppercase tracking-[0.18em] text-white/45">Employee Assistant</div>
           </div>
         </Link>
+
+        <nav className="hidden md:flex items-center gap-1 text-sm" data-testid="header-nav">
+          <a href="#capabilities" data-testid="nav-capabilities"
+            className="px-3 py-2 rounded-full text-white/70 hover:text-white hover:bg-white/[0.05] transition">Capabilities</a>
+          <a href="#how-it-works" data-testid="nav-how"
+            className="px-3 py-2 rounded-full text-white/70 hover:text-white hover:bg-white/[0.05] transition">How it works</a>
+          <a href="#pillars" data-testid="nav-pillars"
+            className="px-3 py-2 rounded-full text-white/70 hover:text-white hover:bg-white/[0.05] transition">Pillars</a>
+          <a href="#try-it" data-testid="nav-try"
+            className="px-3 py-2 rounded-full text-[#FF6B5B] font-medium hover:bg-white/[0.05] transition flex items-center gap-1">
+            Try it <ArrowRight className="h-3 w-3" />
+          </a>
+        </nav>
+
         <div className="flex items-center gap-2">
           <Link to="/sign-in">
             <Button variant="ghost" size="sm" data-testid="header-signin-btn"
@@ -83,35 +98,22 @@ const LandingPage: React.FC = () => {
             </div>
           </motion.div>
 
-          {/* Right: Orb + sample reply card under it */}
+          {/* Right: Orb + LIVE chat demo under it */}
           <motion.div initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1, ease: [0.16, 0.84, 0.44, 1] }}
-            className="relative order-1 lg:order-2">
+            className="relative order-1 lg:order-2" id="try-it">
             <div className="mx-auto" style={{ maxWidth: 360 }}>
-              <AIOrb size={320} />
+              <AIOrb size={300} />
             </div>
             <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6, duration: 0.5 }}
-              className="-mt-6 mx-auto max-w-md rounded-2xl bg-[#0A0A1F]/85 backdrop-blur-xl border border-white/[0.08] p-5 shadow-2xl">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-emerald-400 pulse-soft" />
-                  <span className="text-xs text-white/70 font-medium">Sample reply</span>
-                </div>
-                <span className="text-[10px] text-white/40">India · Leave</span>
-              </div>
-              <div className="text-sm text-white/90 leading-relaxed">
-                You have <span className="font-semibold text-[#FF6B5B]">4 casual leaves</span> remaining this quarter, per the India Leave Policy v3.2.
-              </div>
-              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
-                <FileText className="h-3 w-3 text-white/50" />
-                <span className="text-[11px] text-white/55">India-Leave-v3.2.pdf · §4.1 · p.12</span>
-              </div>
+              className="-mt-4">
+              <HeroChatDemo />
             </motion.div>
           </motion.div>
         </div>
       </section>
 
       {/* HOW IT WORKS — 3 simple steps */}
-      <section className="relative px-6 lg:px-10 py-16 lg:py-20">
+      <section id="how-it-works" className="relative px-6 lg:px-10 py-16 lg:py-20 scroll-mt-20">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <div className="text-xs text-[#FF6B5B] font-semibold uppercase tracking-[0.2em] mb-3">How it works</div>
@@ -146,7 +148,7 @@ const LandingPage: React.FC = () => {
       </section>
 
       {/* FEATURES — bento, less chrome, more clarity */}
-      <section className="relative px-6 lg:px-10 py-16 lg:py-20">
+      <section id="capabilities" className="relative px-6 lg:px-10 py-16 lg:py-20 scroll-mt-20">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <div className="text-xs text-[#FF6B5B] font-semibold uppercase tracking-[0.2em] mb-3">What's inside</div>
@@ -175,6 +177,35 @@ const LandingPage: React.FC = () => {
                 Low-confidence answers turn into knowledge gaps — your admin fixes them with a single upload.
               </p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* OUR EXPERIENCE PILLARS — Zensar identity beat */}
+      <section id="pillars" className="relative px-6 lg:px-10 py-16 lg:py-20 scroll-mt-20">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="text-xs text-[#FF6B5B] font-semibold uppercase tracking-[0.2em] mb-3">Principles</div>
+            <h2 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight">Our experience pillars.</h2>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {[
+              { color: "#1A1A6B", shape: "rounded-full",          title: "Put people first",       desc: "Designed around the employee — accessible, friendly, fast." },
+              { color: "#FF6B5B", shape: "rounded-tl-[2rem]",     title: "Embrace the unexpected", desc: "Adapts to new policies, new regions and new questions." },
+              { color: "#E11D2C", shape: "rounded-r-[2.5rem]",    title: "Solve together",         desc: "Bridges employees, HR and admins in a single workflow." },
+              { color: "#6366F1", shape: "rounded-bl-[2rem]",     title: "Take charge of success", desc: "Frees HR from repetitive queries — focus on higher-value work." },
+            ].map((p, i) => (
+              <motion.div key={p.title}
+                initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.3 }} transition={{ delay: i * 0.08, duration: 0.6 }}
+                data-testid={`pillar-${i}`}
+                className="rounded-2xl p-6 bg-white/[0.025] border border-white/[0.06] hover:bg-white/[0.05] hover:border-white/15 transition">
+                <div className={`h-12 w-12 mb-5 ${p.shape}`}
+                  style={{ background: p.color, boxShadow: `0 0 24px ${p.color}55` }} />
+                <h3 className="font-display text-lg font-bold mb-2">{p.title}</h3>
+                <p className="text-sm text-white/55 leading-relaxed">{p.desc}</p>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
