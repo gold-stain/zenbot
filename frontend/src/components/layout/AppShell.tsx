@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Ambient } from "@/components/common/Ambient";
+import { MeshBackground } from "@/components/common/MeshBackground";
 
 type Item = { to: string; label: string; icon: React.ComponentType<{ className?: string }>; testId: string };
 
@@ -106,7 +107,7 @@ const AppShell: React.FC = () => {
 
   return (
     <div className="min-h-screen text-white relative">
-      <Ambient />
+      <MeshBackground variant="dashboard" />
 
       {/* Sidebar */}
       <aside

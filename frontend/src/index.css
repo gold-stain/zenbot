@@ -268,6 +268,196 @@ code {
         margin-left: auto;
         margin-right: auto;
     }
+
+    /* ====================================================== */
+    /*  AI ORB — the living presence at the centre of the app */
+    /* ====================================================== */
+    .ai-orb {
+        position: relative;
+        display: grid;
+        place-items: center;
+        transform: translate3d(var(--tx, 0), var(--ty, 0), 0);
+        transition: transform 0.4s cubic-bezier(.16,.84,.44,1);
+    }
+    .ai-orb-halo {
+        position: absolute;
+        inset: -25%;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(255,107,91,0.35) 0%, rgba(99,102,241,0.25) 35%, transparent 65%);
+        filter: blur(40px);
+        animation: orb-halo 9s ease-in-out infinite;
+    }
+    .ai-orb-ring {
+        position: absolute;
+        border-radius: 50%;
+        border: 1px solid transparent;
+        background: conic-gradient(from 0deg, transparent 0deg, rgba(255,107,91,0.55) 60deg, transparent 120deg, rgba(99,102,241,0.55) 200deg, transparent 270deg);
+        -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+        -webkit-mask-composite: xor;
+                mask-composite: exclude;
+        padding: 1px;
+    }
+    .ai-orb-ring.ring-1 { inset: 0; animation: orb-spin 14s linear infinite; }
+    .ai-orb-ring.ring-2 { inset: 10%; animation: orb-spin 22s linear infinite reverse; opacity: 0.7; }
+    .ai-orb-ring.ring-3 { inset: 20%; animation: orb-spin 32s linear infinite; opacity: 0.5; }
+
+    .ai-orb-orbit {
+        position: absolute;
+        inset: -8%;
+        animation: orb-spin 80s linear infinite;
+    }
+
+    .ai-orb-core {
+        position: relative;
+        width: 50%;
+        height: 50%;
+        border-radius: 50%;
+        background:
+            radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4) 0%, transparent 22%),
+            radial-gradient(circle at 60% 60%, #E11D2C 0%, #1A1A6B 60%, #050514 100%);
+        box-shadow:
+            inset 0 0 30px rgba(255,255,255,0.15),
+            0 0 60px rgba(255,107,91,0.5),
+            0 0 120px rgba(99,102,241,0.3);
+        animation: orb-breathe 6s ease-in-out infinite;
+        display: grid; place-items: center;
+    }
+    .ai-orb-shine {
+        position: absolute;
+        inset: 6%;
+        border-radius: 50%;
+        background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 40%);
+        pointer-events: none;
+    }
+    .ai-orb-bars {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        height: 22%;
+    }
+    .ai-orb-bars span {
+        display: block;
+        width: 3px;
+        height: 40%;
+        border-radius: 2px;
+        background: linear-gradient(180deg, #fff, rgba(255,255,255,0.6));
+        animation: orb-bar 1.4s ease-in-out infinite;
+    }
+    .ai-orb.listening .ai-orb-core { animation-duration: 1.6s; box-shadow: 0 0 80px rgba(255,107,91,0.8), 0 0 140px rgba(255,107,91,0.5); }
+    .ai-orb.listening .ai-orb-bars span { animation-duration: 0.7s; }
+    .ai-orb.thinking .ai-orb-ring { animation-duration: 4s; }
+
+    @keyframes orb-spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    @keyframes orb-breathe {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.04); }
+    }
+    @keyframes orb-halo {
+        0%, 100% { transform: scale(1); opacity: 0.95; }
+        50% { transform: scale(1.08); opacity: 1; }
+    }
+    @keyframes orb-bar {
+        0%, 100% { height: 35%; }
+        50% { height: 95%; }
+    }
+
+    /* ====================================================== */
+    /*  MESH BACKGROUND — cinematic backdrop                  */
+    /* ====================================================== */
+    .mesh-blob {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(110px);
+        opacity: 0.55;
+        will-change: transform;
+    }
+    .mesh-blob-1 { top: -10%; left: -10%; width: 50%; height: 60%; background: radial-gradient(circle, #FF6B5B 0%, transparent 70%); animation: mesh-1 22s ease-in-out infinite alternate; }
+    .mesh-blob-2 { top: 30%; right: -15%; width: 55%; height: 70%; background: radial-gradient(circle, #6366F1 0%, transparent 70%); animation: mesh-2 26s ease-in-out infinite alternate; }
+    .mesh-blob-3 { bottom: -20%; left: 20%; width: 50%; height: 60%; background: radial-gradient(circle, #E11D2C 0%, transparent 70%); opacity: 0.35; animation: mesh-3 30s ease-in-out infinite alternate; }
+    .mesh-blob-4 { top: 10%; left: 35%; width: 40%; height: 50%; background: radial-gradient(circle, #1A1A6B 0%, transparent 70%); opacity: 0.45; animation: mesh-1 28s ease-in-out infinite alternate-reverse; }
+
+    @keyframes mesh-1 { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(120px,80px) scale(1.15); } }
+    @keyframes mesh-2 { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(-100px,60px) scale(0.9); } }
+    @keyframes mesh-3 { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(-80px,-100px) scale(1.1); } }
+
+    /* ====================================================== */
+    /*  PARTICLES — drifting motes                            */
+    /* ====================================================== */
+    .particle {
+        position: absolute;
+        bottom: -10%;
+        border-radius: 50%;
+        animation: particle-drift linear infinite;
+    }
+    @keyframes particle-drift {
+        0%   { transform: translate3d(0,0,0); opacity: 0; }
+        10%  { opacity: 1; }
+        90%  { opacity: 1; }
+        100% { transform: translate3d(40px,-110vh,0); opacity: 0; }
+    }
+
+    /* ====================================================== */
+    /*  COMMAND SPOTLIGHT                                     */
+    /* ====================================================== */
+    .spotlight-shell {
+        position: relative;
+        padding: 2px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, rgba(255,107,91,0.6), rgba(99,102,241,0.6), rgba(255,107,91,0.6));
+        background-size: 200% 200%;
+        animation: aurora-shift 6s ease infinite;
+    }
+    .spotlight-glow {
+        position: absolute;
+        inset: -20px;
+        border-radius: 999px;
+        background: radial-gradient(ellipse, rgba(255,107,91,0.25), transparent 60%);
+        filter: blur(20px);
+        z-index: -1;
+        pointer-events: none;
+        animation: pulse-soft 3s ease-in-out infinite;
+    }
+    .spotlight-inner {
+        background: linear-gradient(180deg, #0A0A1F 0%, #07071A 100%);
+        border-radius: 999px;
+        padding: 0.6rem 0.6rem 0.6rem 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+    }
+
+    /* Holographic gradient border on hover */
+    .holo-border {
+        position: relative;
+    }
+    .holo-border::before {
+        content: "";
+        position: absolute;
+        inset: -1px;
+        border-radius: inherit;
+        padding: 1px;
+        background: linear-gradient(135deg, #FF6B5B 0%, #E11D2C 25%, #6366F1 50%, #1A1A6B 75%, #FF6B5B 100%);
+        background-size: 300% 300%;
+        animation: aurora-shift 6s ease infinite;
+        -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+        -webkit-mask-composite: xor;
+                mask-composite: exclude;
+        opacity: 0;
+        transition: opacity 0.4s;
+        pointer-events: none;
+    }
+    .holo-border:hover::before { opacity: 1; }
+
+    /* Tabular stat — big sci-fi numbers */
+    .stat-mono {
+        font-family: "Outfit", sans-serif;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.05em;
+        line-height: 0.9;
+    }
 }
 
 @layer base {
