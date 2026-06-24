@@ -21,15 +21,30 @@ export const AIOrb: React.FC<AIOrbProps> = ({
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    if (typeof window !== "undefined" && !window.matchMedia("(pointer: fine)").matches) {
+      return; // skip on touch devices
+    }
+    let raf = 0;
+    let nextX = 0;
+    let nextY = 0;
+    const apply = () => {
+      el.style.setProperty("--tx", `${nextX}px`);
+      el.style.setProperty("--ty", `${nextY}px`);
+      raf = 0;
+    };
     const onMove = (e: MouseEvent) => {
       const r = el.getBoundingClientRect();
       const dx = (e.clientX - (r.left + r.width / 2)) / window.innerWidth;
       const dy = (e.clientY - (r.top + r.height / 2)) / window.innerHeight;
-      el.style.setProperty("--tx", `${dx * 12}px`);
-      el.style.setProperty("--ty", `${dy * 12}px`);
+      nextX = dx * 12;
+      nextY = dy * 12;
+      if (!raf) raf = requestAnimationFrame(apply);
     };
-    window.addEventListener("mousemove", onMove);
-    return () => window.removeEventListener("mousemove", onMove);
+    window.addEventListener("mousemove", onMove, { passive: true });
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      if (raf) cancelAnimationFrame(raf);
+    };
   }, []);
 
   return (
