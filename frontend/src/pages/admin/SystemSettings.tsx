@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,13 +6,49 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getChatWebhookUrl, setChatWebhookUrl } from "@/services/chat";
+import { getSetting, setSetting } from "@/services/db";
+import { safe } from "@/services/safe";
+import { useAuth } from "@/context/AuthContext";
 
 const SystemSettings: React.FC = () => {
+  const { user } = useAuth();
   const [model, setModel] = useState("gpt-4o-mini");
   const [temp, setTemp] = useState([0.4]);
   const [conf, setConf] = useState([0.65]);
-  const [webhook, setWebhook] = useState("");
+  const [webhook, setWebhook] = useState(getChatWebhookUrl());
   const [brand, setBrand] = useState("Zensar AI");
+
+  useEffect(() => {
+    (async () => {
+      const v = await safe(() => getSetting("system"));
+      if (v) {
+        setModel(v.model || "gpt-4o-mini");
+        setTemp([v.temperature ?? 0.4]);
+        setConf([v.confidence_threshold ?? 0.65]);
+        setBrand(v.brand_name || "Zensar AI");
+        if (v.chat_webhook_url) {
+          setWebhook(v.chat_webhook_url);
+          setChatWebhookUrl(v.chat_webhook_url);
+        }
+      }
+    })();
+  }, []);
+
+  const onSave = async () => {
+    setChatWebhookUrl(webhook);
+    const payload = {
+      model,
+      temperature: temp[0],
+      confidence_threshold: conf[0],
+      brand_name: brand,
+      chat_webhook_url: webhook,
+    };
+    if (user) {
+      await safe(() => setSetting("system", payload, user.id));
+    }
+    toast.success("System settings saved");
+  };
 
   return (
     <div data-testid="system-settings-page">
@@ -50,6 +86,9 @@ const SystemSettings: React.FC = () => {
           <div>
             <Label>POST /chat webhook URL</Label>
             <Input value={webhook} onChange={(e) => setWebhook(e.target.value)} placeholder="https://n8n.zensar.com/webhook/chat" data-testid="sys-webhook" className="bg-white/5 border-white/10 mt-1.5" />
+            <p className="text-xs text-white/40 mt-2">
+              When set, the chat assistant POSTs <span className="font-mono">{`{ question, threadId, history, userId, regionId, role }`}</span> here. Expected response: <span className="font-mono">{`{ answer, citations?, portals?, followups?, confidence? }`}</span>.
+            </p>
           </div>
         </Section>
 
@@ -61,9 +100,7 @@ const SystemSettings: React.FC = () => {
         </Section>
 
         <div className="flex justify-end">
-          <Button onClick={() => toast.success("System settings saved")} className="bg-gradient-to-r from-[#FF6B5B] to-[#E11D2C] rounded-xl px-6" data-testid="sys-save">
-            Save settings
-          </Button>
+          <Button onClick={onSave} className="bg-gradient-to-r from-[#FF6B5B] to-[#E11D2C] rounded-xl px-6" data-testid="sys-save">Save settings</Button>
         </div>
       </div>
     </div>

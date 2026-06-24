@@ -1,28 +1,70 @@
-import React from "react";
+import React, { useState } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useAuth } from "@/context/AuthContext";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { LogOut, Mail, Hash, Building2, Globe2, ShieldCheck } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { LogOut, Mail, Hash, Building2, Globe2, ShieldCheck, Edit3, Save, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { updateMyProfile } from "@/services/db";
+import { safe } from "@/services/safe";
+import { toast } from "sonner";
 
 const Profile: React.FC = () => {
-  const { profile, signOut, role } = useAuth();
+  const { user, profile, signOut, role, refreshProfile } = useAuth();
   const navigate = useNavigate();
+  const [editing, setEditing] = useState(false);
+  const [fullName, setFullName] = useState(profile?.full_name || "");
+  const [department, setDepartment] = useState(profile?.department || "");
+  const [empId, setEmpId] = useState(profile?.employee_id || "");
+  const [saving, setSaving] = useState(false);
+
   const initials =
-    profile?.full_name
-      ?.split(" ")
-      .map((n) => n[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase() ||
+    profile?.full_name?.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase() ||
     profile?.email?.slice(0, 2).toUpperCase() ||
     "U";
 
+  const onSave = async () => {
+    if (!user) return;
+    setSaving(true);
+    await safe(() =>
+      updateMyProfile(user.id, {
+        full_name: fullName,
+        department,
+        employee_id: empId,
+      })
+    );
+    await refreshProfile();
+    setSaving(false);
+    setEditing(false);
+    toast.success("Profile updated");
+  };
+
   return (
     <div data-testid="profile-page">
-      <PageHeader eyebrow="Account" title="Profile" subtitle="Your identity inside Zensar AI." />
+      <PageHeader
+        eyebrow="Account"
+        title="Profile"
+        subtitle="Your identity inside Zensar AI."
+        actions={
+          !editing ? (
+            <Button variant="ghost" onClick={() => setEditing(true)} className="text-white/80 hover:bg-white/5" data-testid="profile-edit-btn">
+              <Edit3 className="h-4 w-4 mr-1.5" /> Edit
+            </Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button variant="ghost" onClick={() => setEditing(false)} className="text-white/60 hover:bg-white/5" data-testid="profile-cancel-btn">
+                <X className="h-4 w-4 mr-1.5" /> Cancel
+              </Button>
+              <Button onClick={onSave} disabled={saving} className="bg-gradient-to-r from-[#FF6B5B] to-[#E11D2C] rounded-xl" data-testid="profile-save-btn">
+                <Save className="h-4 w-4 mr-1.5" /> Save
+              </Button>
+            </div>
+          )
+        }
+      />
       <div className="rounded-2xl border border-white/5 bg-[#0B0B20]/80 backdrop-blur-md p-8 max-w-3xl">
         <div className="flex items-center gap-5 mb-8">
           <Avatar className="h-16 w-16 ring-2 ring-white/10">
@@ -40,18 +82,33 @@ const Profile: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid sm:grid-cols-2 gap-4">
-          <Field icon={Mail} label="Email" value={profile?.email || "—"} testId="profile-email" />
-          <Field icon={Hash} label="Employee ID" value={profile?.employee_id || "—"} testId="profile-empid" />
-          <Field icon={Building2} label="Department" value={profile?.department || "—"} testId="profile-dept" />
-          <Field icon={Globe2} label="Region" value={profile?.region_id ? "Assigned" : "Not set"} testId="profile-region" />
-          <Field icon={ShieldCheck} label="Role" value={role || "—"} testId="profile-role" />
-        </div>
+        {editing ? (
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <Label>Full name</Label>
+              <Input value={fullName} onChange={(e) => setFullName(e.target.value)} className="bg-white/5 border-white/10 mt-1.5" data-testid="profile-name-input" />
+            </div>
+            <div>
+              <Label>Employee ID</Label>
+              <Input value={empId} onChange={(e) => setEmpId(e.target.value)} className="bg-white/5 border-white/10 mt-1.5" data-testid="profile-empid-input" />
+            </div>
+            <div className="sm:col-span-2">
+              <Label>Department</Label>
+              <Input value={department} onChange={(e) => setDepartment(e.target.value)} className="bg-white/5 border-white/10 mt-1.5" data-testid="profile-dept-input" />
+            </div>
+          </div>
+        ) : (
+          <div className="grid sm:grid-cols-2 gap-4">
+            <Field icon={Mail} label="Email" value={profile?.email || "—"} testId="profile-email" />
+            <Field icon={Hash} label="Employee ID" value={profile?.employee_id || "—"} testId="profile-empid" />
+            <Field icon={Building2} label="Department" value={profile?.department || "—"} testId="profile-dept" />
+            <Field icon={Globe2} label="Region" value={profile?.region_id ? "Assigned" : "Not set"} testId="profile-region" />
+            <Field icon={ShieldCheck} label="Role" value={role || "—"} testId="profile-role" />
+          </div>
+        )}
 
         <div className="mt-8 pt-6 border-t border-white/5 flex justify-between items-center">
-          <div className="text-xs text-white/50">
-            Region is locked. Contact an Admin to change it.
-          </div>
+          <div className="text-xs text-white/50">Region is locked. Contact an Admin to change it.</div>
           <Button
             variant="ghost"
             onClick={async () => {
@@ -69,12 +126,7 @@ const Profile: React.FC = () => {
   );
 };
 
-const Field: React.FC<{ icon: React.ComponentType<{ className?: string }>; label: string; value: string; testId: string }> = ({
-  icon: Icon,
-  label,
-  value,
-  testId,
-}) => (
+const Field: React.FC<{ icon: React.ComponentType<{ className?: string }>; label: string; value: string; testId: string }> = ({ icon: Icon, label, value, testId }) => (
   <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4" data-testid={testId}>
     <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-white/40 mb-1.5">
       <Icon className="h-3 w-3" /> {label}

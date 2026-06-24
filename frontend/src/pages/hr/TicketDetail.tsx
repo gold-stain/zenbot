@@ -1,16 +1,87 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Paperclip, Send, User, Sparkles, ShieldCheck, FileText } from "lucide-react";
+import { ArrowLeft, Paperclip, Send, User, Sparkles, ShieldCheck } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/context/AuthContext";
+import { getTicket, listTicketMessages, postTicketMessage, updateTicketStatus } from "@/services/db";
+import { safe } from "@/services/safe";
+import { toast } from "sonner";
+
+interface Ticket {
+  id: string;
+  code: string;
+  subject: string;
+  description?: string;
+  status: string;
+  priority: string;
+  created_by: string;
+  created_at: string;
+}
+
+interface TMsg {
+  id: string;
+  ticket_id: string;
+  author_id: string;
+  body: string;
+  created_at: string;
+}
 
 const TicketDetail: React.FC = () => {
   const { id } = useParams();
+  const { user } = useAuth();
+  const [ticket, setTicket] = useState<Ticket | null>(null);
+  const [messages, setMessages] = useState<TMsg[]>([]);
   const [reply, setReply] = useState("");
-  const [status, setStatus] = useState("in_progress");
+  const [status, setStatus] = useState("open");
+  const [sending, setSending] = useState(false);
+
+  const reload = async () => {
+    if (!id) return;
+    const t = await safe(() => getTicket(id));
+    if (t) {
+      setTicket(t as Ticket);
+      setStatus((t as Ticket).status);
+    }
+    const ms = await safe(() => listTicketMessages(id));
+    setMessages((ms as TMsg[]) || []);
+  };
+
+  useEffect(() => {
+    reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  const onSend = async () => {
+    if (!reply.trim() || !id || !user) return;
+    setSending(true);
+    await safe(() => postTicketMessage(id, user.id, reply));
+    if (status !== ticket?.status) await safe(() => updateTicketStatus(id, status));
+    setReply("");
+    setSending(false);
+    toast.success("Reply sent");
+    reload();
+  };
+
+  const onStatusChange = async (next: string) => {
+    if (!id) return;
+    setStatus(next);
+    await safe(() => updateTicketStatus(id, next));
+    toast.success("Status updated");
+  };
+
+  if (!ticket) {
+    return (
+      <div data-testid="ticket-detail-page">
+        <Link to="/app/hr/queue" className="text-xs text-white/50 hover:text-white inline-flex items-center gap-1.5 mb-3">
+          <ArrowLeft className="h-3 w-3" /> Back to queue
+        </Link>
+        <div className="rounded-2xl border border-white/5 bg-[#0B0B20]/80 p-12 text-center text-white/50">Loading ticket…</div>
+      </div>
+    );
+  }
 
   return (
     <div data-testid="ticket-detail-page">
@@ -18,11 +89,11 @@ const TicketDetail: React.FC = () => {
         <ArrowLeft className="h-3 w-3" /> Back to queue
       </Link>
       <PageHeader
-        eyebrow={`Ticket · ${id}`}
-        title="Relocation reimbursement — Pune to Bengaluru"
-        subtitle="Raised by Priya S. · India region · Priority high"
+        eyebrow={`Ticket · ${ticket.code}`}
+        title={ticket.subject}
+        subtitle={`Priority ${ticket.priority} · Opened ${new Date(ticket.created_at).toLocaleString()}`}
         actions={
-          <Select value={status} onValueChange={setStatus}>
+          <Select value={status} onValueChange={onStatusChange}>
             <SelectTrigger className="w-48 bg-white/5 border-white/10" data-testid="ticket-status-select">
               <SelectValue />
             </SelectTrigger>
@@ -39,17 +110,24 @@ const TicketDetail: React.FC = () => {
 
       <div className="grid lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2 space-y-4">
-          {/* Chat history */}
           <div className="rounded-2xl border border-white/5 bg-[#0B0B20]/80 backdrop-blur-md p-6">
-            <h3 className="font-display font-bold mb-4">Original conversation</h3>
-            <div className="space-y-4">
-              <Bubble side="user" name="Priya S." text="I'm relocating from Pune to Bengaluru next month. What can I claim?" />
-              <Bubble side="ai" name="Zensar AI" text="Per India Relocation Policy v2.1, you can claim packing & moving (capped at ₹50k), travel for self + dependents, and a one-time settling-in allowance. I'd recommend confirming the cap with HR." />
-              <Bubble side="user" name="Priya S." text="Got it. I'd like to talk to HR to confirm the cap for senior roles." />
-            </div>
+            <h3 className="font-display font-bold mb-4">Description</h3>
+            <p className="text-white/80 whitespace-pre-wrap text-sm">{ticket.description || "No description provided."}</p>
           </div>
 
-          {/* HR reply composer */}
+          <div className="rounded-2xl border border-white/5 bg-[#0B0B20]/80 backdrop-blur-md p-6">
+            <h3 className="font-display font-bold mb-4">Thread</h3>
+            {messages.length === 0 ? (
+              <div className="text-sm text-white/50">No replies yet.</div>
+            ) : (
+              <div className="space-y-4">
+                {messages.map((m) => (
+                  <Bubble key={m.id} side={m.author_id === ticket.created_by ? "user" : "ai"} text={m.body} time={new Date(m.created_at).toLocaleString()} />
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="rounded-2xl border border-white/5 bg-[#0B0B20]/80 backdrop-blur-md p-6">
             <h3 className="font-display font-bold mb-4">Respond</h3>
             <Textarea
@@ -64,40 +142,20 @@ const TicketDetail: React.FC = () => {
               <Button variant="ghost" size="sm" className="text-white/60 hover:bg-white/5" data-testid="ticket-attach">
                 <Paperclip className="h-4 w-4 mr-1.5" /> Attach
               </Button>
-              <Button className="bg-gradient-to-r from-[#FF6B5B] to-[#E11D2C] rounded-xl" data-testid="ticket-send-reply">
+              <Button onClick={onSend} disabled={sending || !reply.trim()} className="bg-gradient-to-r from-[#FF6B5B] to-[#E11D2C] rounded-xl" data-testid="ticket-send-reply">
                 <Send className="h-4 w-4 mr-1.5" /> Send reply
               </Button>
             </div>
           </div>
         </div>
 
-        {/* Employee + meta */}
         <div className="space-y-4">
           <div className="rounded-2xl border border-white/5 bg-[#0B0B20]/80 backdrop-blur-md p-6">
-            <h3 className="font-display font-bold mb-4">Employee</h3>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#1A1A6B] to-[#FF6B5B] grid place-items-center text-sm font-bold">PS</div>
-              <div>
-                <div className="font-medium">Priya S.</div>
-                <div className="text-xs text-white/50">priya.s@zensar.com</div>
-              </div>
-            </div>
+            <h3 className="font-display font-bold mb-4">Meta</h3>
             <div className="space-y-2 text-sm text-white/70">
-              <div className="flex justify-between"><span className="text-white/40">Region</span><span>India</span></div>
-              <div className="flex justify-between"><span className="text-white/40">Department</span><span>Engineering</span></div>
-              <div className="flex justify-between"><span className="text-white/40">Employee ID</span><span>ZEN-104382</span></div>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-white/5 bg-[#0B0B20]/80 backdrop-blur-md p-6">
-            <h3 className="font-display font-bold mb-4">Quick attach</h3>
-            <div className="space-y-2">
-              <Button variant="ghost" className="w-full justify-start text-white/70 hover:bg-white/5" data-testid="ticket-attach-relocation">
-                <FileText className="h-4 w-4 mr-2 text-[#FF6B5B]" /> India Relocation Policy v2.1
-              </Button>
-              <Button variant="ghost" className="w-full justify-start text-white/70 hover:bg-white/5" data-testid="ticket-attach-payroll">
-                <FileText className="h-4 w-4 mr-2 text-[#FF6B5B]" /> Q1 Payroll Calendar
-              </Button>
+              <div className="flex justify-between"><span className="text-white/40">Code</span><span className="font-mono">{ticket.code}</span></div>
+              <div className="flex justify-between"><span className="text-white/40">Priority</span><span>{ticket.priority}</span></div>
+              <div className="flex justify-between"><span className="text-white/40">Status</span><span>{status}</span></div>
             </div>
           </div>
         </div>
@@ -106,15 +164,15 @@ const TicketDetail: React.FC = () => {
   );
 };
 
-const Bubble: React.FC<{ side: "user" | "ai"; name: string; text: string }> = ({ side, name, text }) =>
+const Bubble: React.FC<{ side: "user" | "ai"; text: string; time: string }> = ({ side, text, time }) => (
   side === "user" ? (
     <div className="flex items-start gap-3">
       <div className="h-8 w-8 rounded-full bg-white/10 grid place-items-center shrink-0">
         <User className="h-3.5 w-3.5" />
       </div>
       <div>
-        <div className="text-xs text-white/50 mb-1">{name}</div>
-        <div className="bg-white/5 rounded-2xl rounded-tl-sm px-4 py-2.5 max-w-xl">{text}</div>
+        <div className="text-xs text-white/50 mb-1">Employee · {time}</div>
+        <div className="bg-white/5 rounded-2xl rounded-tl-sm px-4 py-2.5 max-w-xl whitespace-pre-wrap">{text}</div>
       </div>
     </div>
   ) : (
@@ -123,10 +181,11 @@ const Bubble: React.FC<{ side: "user" | "ai"; name: string; text: string }> = ({
         <Sparkles className="h-3.5 w-3.5" />
       </div>
       <div>
-        <div className="text-xs text-white/50 mb-1 flex items-center gap-1"><ShieldCheck className="h-3 w-3" /> {name}</div>
-        <div className="border-l-2 border-[#FF6B5B] pl-4 max-w-xl text-white/80">{text}</div>
+        <div className="text-xs text-white/50 mb-1 flex items-center gap-1"><ShieldCheck className="h-3 w-3" /> HR · {time}</div>
+        <div className="border-l-2 border-[#FF6B5B] pl-4 max-w-xl text-white/80 whitespace-pre-wrap">{text}</div>
       </div>
     </div>
-  );
+  )
+);
 
 export default TicketDetail;

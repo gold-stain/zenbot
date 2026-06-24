@@ -1,28 +1,58 @@
-import React, { useState } from "react";
-import { Search, Filter, FileText, Download, Star, BookOpen, Grid3x3, List } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Search, FileText, Download, Star, BookOpen, Grid3x3, List } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { listPolicies, getPolicyDownloadUrl } from "@/services/db";
+import { safe } from "@/services/safe";
 
 const CATEGORIES = ["All", "HR", "Leave", "Payroll", "Benefits", "IT", "Code of Conduct", "Onboarding"];
 
-const MOCK = [
-  { id: "1", title: "India HR Policy v3.2", cat: "HR", region: "India", updated: "Jan 2026", recent: true },
-  { id: "2", title: "Global Code of Conduct", cat: "Code of Conduct", region: "Global", updated: "Dec 2025" },
-  { id: "3", title: "UK Leave & Holidays", cat: "Leave", region: "UK", updated: "Feb 2026", recent: true },
-  { id: "4", title: "US Benefits Handbook", cat: "Benefits", region: "USA", updated: "Nov 2025" },
-  { id: "5", title: "IT Acceptable Use Policy", cat: "IT", region: "Global", updated: "Jan 2026" },
-  { id: "6", title: "South Africa Payroll Calendar", cat: "Payroll", region: "South Africa", updated: "Feb 2026" },
-];
+interface Policy {
+  id: string;
+  title: string;
+  description?: string;
+  category?: string;
+  tags?: string[];
+  current_version: number;
+  updated_at: string;
+  policy_regions?: Array<{ regions?: { name?: string; code?: string } }>;
+}
 
 const PolicyLibrary: React.FC = () => {
   const [view, setView] = useState<"grid" | "list">("grid");
   const [cat, setCat] = useState("All");
   const [q, setQ] = useState("");
-  const items = MOCK.filter(
-    (p) => (cat === "All" || p.cat === cat) && p.title.toLowerCase().includes(q.toLowerCase())
+  const [policies, setPolicies] = useState<Policy[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      const data = await safe(() => listPolicies());
+      setPolicies((data as Policy[]) || []);
+      setLoading(false);
+    })();
+  }, []);
+
+  const items = policies.filter(
+    (p) =>
+      (cat === "All" || p.category === cat) &&
+      p.title.toLowerCase().includes(q.toLowerCase())
   );
+
+  const onDownload = async (p: Policy) => {
+    // Try to derive a path; if no version exists, just notify.
+    const guess = `${p.id}/v${p.current_version}.pdf`;
+    const url = await safe(() => getPolicyDownloadUrl(guess));
+    if (url) {
+      window.open(url, "_blank");
+    } else {
+      toast.error("No file attached to this policy yet");
+    }
+  };
 
   return (
     <div data-testid="policy-library-page">
@@ -32,8 +62,12 @@ const PolicyLibrary: React.FC = () => {
         subtitle="Search and download policies scoped to your region plus Global."
         actions={
           <div className="flex gap-1 rounded-xl border border-white/10 p-1">
-            <Button size="icon" variant={view === "grid" ? "secondary" : "ghost"} onClick={() => setView("grid")} data-testid="lib-view-grid" className="h-8 w-8"><Grid3x3 className="h-4 w-4" /></Button>
-            <Button size="icon" variant={view === "list" ? "secondary" : "ghost"} onClick={() => setView("list")} data-testid="lib-view-list" className="h-8 w-8"><List className="h-4 w-4" /></Button>
+            <Button size="icon" variant={view === "grid" ? "secondary" : "ghost"} onClick={() => setView("grid")} data-testid="lib-view-grid" className="h-8 w-8">
+              <Grid3x3 className="h-4 w-4" />
+            </Button>
+            <Button size="icon" variant={view === "list" ? "secondary" : "ghost"} onClick={() => setView("list")} data-testid="lib-view-list" className="h-8 w-8">
+              <List className="h-4 w-4" />
+            </Button>
           </div>
         }
       />
@@ -67,43 +101,55 @@ const PolicyLibrary: React.FC = () => {
         </div>
       </div>
 
-      {view === "grid" ? (
+      {loading ? (
+        <div className="rounded-2xl border border-white/5 bg-[#0B0B20]/80 p-12 text-center text-white/50">Loading…</div>
+      ) : items.length === 0 ? (
+        <div className="rounded-2xl border border-white/5 bg-[#0B0B20]/80 p-12 text-center text-white/50" data-testid="lib-empty">
+          {policies.length === 0
+            ? "No policies published yet. Ask an Admin to upload some."
+            : "No policies match your filters."}
+        </div>
+      ) : view === "grid" ? (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {items.map((p) => (
-            <div
-              key={p.id}
-              data-testid={`policy-card-${p.id}`}
-              className="group relative rounded-2xl border border-white/5 bg-[#0B0B20]/80 backdrop-blur-md p-5 hover:border-white/15 transition-all"
-            >
-              {p.recent && (
-                <Badge className="absolute top-4 right-4 bg-[#FF6B5B]/15 text-[#FF6B5B] border-0 text-[10px] uppercase tracking-wider">
-                  Updated
-                </Badge>
-              )}
-              <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[#1A1A6B] to-[#0F0F4A] grid place-items-center mb-4">
-                <FileText className="h-5 w-5 text-white/80" />
+          {items.map((p) => {
+            const recent = new Date(p.updated_at).getTime() > Date.now() - 30 * 864e5;
+            const regions = (p.policy_regions || [])
+              .map((pr) => pr.regions?.name)
+              .filter(Boolean)
+              .join(", ");
+            return (
+              <div
+                key={p.id}
+                data-testid={`policy-card-${p.id}`}
+                className="group relative rounded-2xl border border-white/5 bg-[#0B0B20]/80 backdrop-blur-md p-5 hover:border-white/15 transition-all"
+              >
+                {recent && (
+                  <Badge className="absolute top-4 right-4 bg-[#FF6B5B]/15 text-[#FF6B5B] border-0 text-[10px] uppercase tracking-wider">
+                    Updated
+                  </Badge>
+                )}
+                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[#1A1A6B] to-[#0F0F4A] grid place-items-center mb-4">
+                  <FileText className="h-5 w-5 text-white/80" />
+                </div>
+                <div className="font-medium text-base mb-1.5 pr-12 leading-snug">{p.title}</div>
+                <div className="flex items-center gap-2 text-[11px] text-white/40 mb-4">
+                  {p.category && <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10">{p.category}</span>}
+                  {regions && <><span>·</span><span>{regions}</span></>}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Button size="sm" variant="ghost" className="h-8 text-white/70 hover:bg-white/5 hover:text-white" data-testid={`policy-view-${p.id}`}>
+                    <BookOpen className="h-3.5 w-3.5 mr-1.5" /> Preview
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => onDownload(p)} className="h-8 text-white/70 hover:bg-white/5 hover:text-[#FF6B5B]" data-testid={`policy-download-${p.id}`}>
+                    <Download className="h-3.5 w-3.5 mr-1.5" /> Download
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-8 w-8 text-white/40 hover:text-yellow-400 hover:bg-white/5 ml-auto" data-testid={`policy-fav-${p.id}`}>
+                    <Star className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               </div>
-              <div className="font-medium text-base mb-1.5 pr-12 leading-snug">{p.title}</div>
-              <div className="flex items-center gap-2 text-[11px] text-white/40 mb-4">
-                <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10">{p.cat}</span>
-                <span>·</span>
-                <span>{p.region}</span>
-                <span>·</span>
-                <span>{p.updated}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Button size="sm" variant="ghost" className="h-8 text-white/70 hover:bg-white/5 hover:text-white" data-testid={`policy-view-${p.id}`}>
-                  <BookOpen className="h-3.5 w-3.5 mr-1.5" /> Preview
-                </Button>
-                <Button size="sm" variant="ghost" className="h-8 text-white/70 hover:bg-white/5 hover:text-[#FF6B5B]" data-testid={`policy-download-${p.id}`}>
-                  <Download className="h-3.5 w-3.5 mr-1.5" /> Download
-                </Button>
-                <Button size="icon" variant="ghost" className="h-8 w-8 text-white/40 hover:text-yellow-400 hover:bg-white/5 ml-auto" data-testid={`policy-fav-${p.id}`}>
-                  <Star className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <div className="rounded-2xl border border-white/5 bg-[#0B0B20]/80 backdrop-blur-md overflow-hidden divide-y divide-white/5">
@@ -112,9 +158,11 @@ const PolicyLibrary: React.FC = () => {
               <FileText className="h-5 w-5 text-white/60 shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="font-medium text-sm truncate">{p.title}</div>
-                <div className="text-[11px] text-white/40">{p.cat} · {p.region} · {p.updated}</div>
+                <div className="text-[11px] text-white/40">{p.category} · v{p.current_version}</div>
               </div>
-              <Button size="sm" variant="ghost" className="text-[#FF6B5B]" data-testid={`policy-list-download-${p.id}`}><Download className="h-3.5 w-3.5 mr-1" /> Download</Button>
+              <Button size="sm" variant="ghost" onClick={() => onDownload(p)} className="text-[#FF6B5B]" data-testid={`policy-list-download-${p.id}`}>
+                <Download className="h-3.5 w-3.5 mr-1" /> Download
+              </Button>
             </div>
           ))}
         </div>

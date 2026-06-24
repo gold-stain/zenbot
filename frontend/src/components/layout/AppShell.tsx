@@ -25,6 +25,7 @@ import {
   Menu,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useAppTheme } from "@/hooks/useAppTheme";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -67,16 +68,19 @@ const accountNav: Item[] = [
 
 const AppShell: React.FC = () => {
   const { profile, role, signOut } = useAuth();
+  const { theme } = useAppTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = React.useState(false);
 
   useEffect(() => {
-    document.documentElement.classList.add("dark");
+    // honour user preference (dark by default, light if chosen in Settings)
+    if (theme === "dark") document.documentElement.classList.add("dark");
+    else document.documentElement.classList.remove("dark");
     return () => {
       document.documentElement.classList.remove("dark");
     };
-  }, []);
+  }, [theme]);
 
   useEffect(() => {
     setOpen(false);

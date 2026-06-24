@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import {
   Send,
   Mic,
@@ -20,11 +20,22 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
+import { Markdown } from "@/components/common/Markdown";
+import {
+  createChatThread,
+  listMessages,
+  appendMessage,
+  setMessageFeedback,
+  createTicket,
+} from "@/services/db";
+import { askAssistant, getChatWebhookUrl } from "@/services/chat";
+import { safe } from "@/services/safe";
 
 interface Citation {
   title: string;
   section?: string;
   page?: number;
+  url?: string;
 }
 interface PortalChip {
   label: string;
@@ -39,34 +50,17 @@ interface Message {
   feedback?: "up" | "down" | null;
   followups?: string[];
   streaming?: boolean;
+  persisted?: boolean;
 }
 
-const DEMO_REPLY = (q: string): Message => ({
-  id: crypto.randomUUID(),
-  author: "assistant",
-  content:
-    "I'd usually fetch this from your region's policy corpus via the n8n RAG pipeline. " +
-    `Here's a sample answer for: "${q}". Connect your n8n webhook in Admin → System to enable real responses.`,
-  citations: [
-    { title: "India-HR-Policy", section: "§4.1 Casual Leave", page: 12 },
-    { title: "Global-Code-of-Conduct", section: "Appendix B", page: 3 },
-  ],
-  portals: [
-    { label: "Open Leave Portal", url: "#" },
-    { label: "View Payslip", url: "#" },
-  ],
-  followups: [
-    "How do I cancel a pending leave?",
-    "What's the parental leave duration?",
-    "Show me the policy PDF",
-  ],
-});
-
 const Chat: React.FC = () => {
-  const { profile } = useAuth();
+  const { user, profile, regionId, role } = useAuth();
   const [params] = useSearchParams();
+  const { threadId: routeThreadId } = useParams();
+  const navigate = useNavigate();
   const presetQ = params.get("q") || "";
 
+  const [threadId, setThreadId] = useState<string | null>(routeThreadId || null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState(presetQ);
   const [sending, setSending] = useState(false);
@@ -75,19 +69,60 @@ const Chat: React.FC = () => {
   const endRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
 
+  // Load existing thread if visiting /app/chat/:threadId
+  useEffect(() => {
+    let mounted = true;
+    if (routeThreadId) {
+      setThreadId(routeThreadId);
+      (async () => {
+        const rows = await safe(() => listMessages(routeThreadId));
+        if (mounted && rows) {
+          setMessages(
+            rows.map((m: any) => ({
+              id: m.id,
+              author: m.author,
+              content: m.content,
+              citations: m.citations || [],
+              portals: m.portals || [],
+              feedback: m.feedback || null,
+              persisted: true,
+            }))
+          );
+        }
+      })();
+    }
+    return () => {
+      mounted = false;
+    };
+  }, [routeThreadId]);
+
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Auto-submit prefilled query
   useEffect(() => {
-    if (presetQ && messages.length === 0) {
+    if (presetQ && messages.length === 0 && !routeThreadId) {
       setTimeout(() => handleSend(presetQ), 250);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const streamText = (full: string, msgId: string) => {
+  const ensureThread = async (firstQuestion: string): Promise<string | null> => {
+    if (threadId) return threadId;
+    if (!user) return null;
+    const t = await safe(() =>
+      createChatThread(user.id, firstQuestion.slice(0, 60))
+    );
+    if (t?.id) {
+      setThreadId(t.id);
+      // soft-navigate without re-mount
+      window.history.replaceState({}, "", `/app/chat/${t.id}`);
+      return t.id;
+    }
+    return null;
+  };
+
+  const streamText = (full: string, msgId: string, onDone?: () => void) => {
     let i = 0;
     const tick = () => {
       i += Math.max(1, Math.round(full.length / 60));
@@ -98,15 +133,19 @@ const Chat: React.FC = () => {
             : m
         )
       );
-      if (i < full.length) setTimeout(tick, 30);
-      else if (ttsOn) speak(full);
+      if (i < full.length) {
+        setTimeout(tick, 25);
+      } else {
+        if (ttsOn) speak(full);
+        onDone?.();
+      }
     };
     tick();
   };
 
   const speak = (text: string) => {
     try {
-      const u = new SpeechSynthesisUtterance(text);
+      const u = new SpeechSynthesisUtterance(text.replace(/[*_`#>]/g, ""));
       u.rate = 1;
       window.speechSynthesis.cancel();
       window.speechSynthesis.speak(u);
@@ -115,26 +154,72 @@ const Chat: React.FC = () => {
     }
   };
 
-  const handleSend = (overrideText?: string) => {
+  const handleSend = async (overrideText?: string) => {
     const text = (overrideText ?? input).trim();
     if (!text || sending) return;
     setSending(true);
-    const userMsg: Message = { id: crypto.randomUUID(), author: "user", content: text };
+
+    const userMsg: Message = {
+      id: crypto.randomUUID(),
+      author: "user",
+      content: text,
+    };
     setMessages((m) => [...m, userMsg]);
     setInput("");
 
-    setTimeout(() => {
-      const ai = DEMO_REPLY(text);
-      const startMsg: Message = { ...ai, content: "", streaming: true };
-      setMessages((m) => [...m, startMsg]);
-      streamText(ai.content, startMsg.id);
+    const tid = await ensureThread(text);
+    if (tid) await safe(() => appendMessage(tid, { author: "user", content: text }));
+
+    try {
+      const history = messages.map((m) => ({
+        role: m.author as "user" | "assistant",
+        content: m.content,
+      }));
+      const reply = await askAssistant({
+        question: text,
+        threadId: tid || undefined,
+        history,
+        userId: user?.id,
+        regionId,
+        role,
+      });
+
+      const aiMsgId = crypto.randomUUID();
+      const aiMsg: Message = {
+        id: aiMsgId,
+        author: "assistant",
+        content: "",
+        citations: reply.citations || [],
+        portals: reply.portals || [],
+        followups: reply.followups || [],
+        streaming: true,
+      };
+      setMessages((m) => [...m, aiMsg]);
+
+      streamText(reply.answer, aiMsgId, async () => {
+        if (tid) {
+          await safe(() =>
+            appendMessage(tid, {
+              author: "assistant",
+              content: reply.answer,
+              citations: reply.citations || [],
+              portals: reply.portals || [],
+              confidence: reply.confidence,
+            })
+          );
+        }
+      });
+    } catch (err: any) {
+      toast.error(err?.message || "Assistant unavailable");
+    } finally {
       setSending(false);
-    }, 450);
+    }
   };
 
   const toggleVoice = () => {
     const SR =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
     if (!SR) {
       toast.error("Voice input not supported in this browser");
       return;
@@ -160,30 +245,49 @@ const Chat: React.FC = () => {
     setListening(true);
   };
 
-  const setFeedback = (id: string, f: "up" | "down") =>
+  const setFeedback = async (id: string, f: "up" | "down") => {
     setMessages((m) => m.map((x) => (x.id === id ? { ...x, feedback: f } : x)));
+    const msg = messages.find((m) => m.id === id);
+    if (msg?.persisted || threadId) {
+      await safe(() => setMessageFeedback(id, f));
+    }
+  };
 
   const regenerate = (id: string) => {
     const idx = messages.findIndex((m) => m.id === id);
     if (idx <= 0) return;
-    const prevUser = [...messages].slice(0, idx).reverse().find((m) => m.author === "user");
+    const prevUser = [...messages]
+      .slice(0, idx)
+      .reverse()
+      .find((m) => m.author === "user");
     if (!prevUser) return;
-    const ai = DEMO_REPLY(prevUser.content);
-    setMessages((m) => {
-      const next = [...m];
-      next[idx] = { ...ai, content: "", streaming: true, id };
-      return next;
-    });
-    streamText(ai.content, id);
+    // Strip the old assistant message and re-ask
+    setMessages((m) => m.slice(0, idx));
+    handleSend(prevUser.content);
   };
 
-  const escalate = () => {
-    toast.success("Ticket created · routed to your regional HR queue");
+  const escalate = async () => {
+    if (!user) return;
+    const lastUser = [...messages].reverse().find((m) => m.author === "user");
+    const t = await safe(() =>
+      createTicket({
+        subject: lastUser?.content.slice(0, 120) || "Escalation from chat",
+        description: messages.map((m) => `${m.author}: ${m.content}`).join("\n\n"),
+        region_id: regionId,
+        user_id: user.id,
+        priority: "medium",
+        thread_id: threadId,
+      })
+    );
+    if (t) toast.success(`Ticket ${t.code || "created"} · routed to your regional HR queue`);
+    else toast.success("Ticket created · routed to your regional HR queue");
   };
 
   const newChat = () => {
+    setThreadId(null);
     setMessages([]);
     setInput("");
+    navigate("/app/chat");
   };
 
   const initials =
@@ -196,6 +300,8 @@ const Chat: React.FC = () => {
     profile?.email?.slice(0, 2).toUpperCase() ||
     "U";
 
+  const liveWebhook = !!getChatWebhookUrl();
+
   return (
     <div className="flex flex-col h-[calc(100vh-9rem)]" data-testid="chat-page">
       {/* Header */}
@@ -207,7 +313,8 @@ const Chat: React.FC = () => {
           <div>
             <div className="font-display text-xl font-bold leading-tight">Zensar AI</div>
             <div className="text-[11px] text-white/50 tracking-wide flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> Online · region-scoped
+              <span className={`h-1.5 w-1.5 rounded-full ${liveWebhook ? "bg-emerald-400" : "bg-amber-400"} animate-pulse`} />
+              {liveWebhook ? "Connected · region-scoped" : "Demo mode · configure webhook in Admin → System"}
             </div>
           </div>
         </div>
@@ -242,12 +349,8 @@ const Chat: React.FC = () => {
               <div className="h-16 w-16 mx-auto rounded-3xl bg-gradient-to-br from-[#FF6B5B] to-[#E11D2C] grid place-items-center shadow-2xl shadow-[#FF6B5B]/30 mb-6 animate-pulse-glow">
                 <Sparkles className="h-7 w-7 text-white" />
               </div>
-              <h2 className="font-display text-3xl font-bold mb-3">
-                What's on your mind?
-              </h2>
-              <p className="text-white/50 mb-8">
-                Try a quick question or just talk — I'll listen.
-              </p>
+              <h2 className="font-display text-3xl font-bold mb-3">What's on your mind?</h2>
+              <p className="text-white/50 mb-8">Try a quick question or just talk — I'll listen.</p>
               <div className="grid sm:grid-cols-2 gap-2">
                 {[
                   "How do I apply for leave?",
@@ -288,19 +391,23 @@ const Chat: React.FC = () => {
                   <Sparkles className="h-3.5 w-3.5 text-white" />
                 </div>
                 <div className="flex-1 border-l-2 border-[#FF6B5B] pl-4">
-                  <div className="text-white/90 leading-relaxed whitespace-pre-wrap">
-                    {m.content}
-                    {m.streaming && (
-                      <span className="inline-block ml-1 align-middle">
-                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#FF6B5B] typing-dot" />
-                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#FF6B5B] typing-dot ml-1" style={{ animationDelay: "0.18s" }} />
-                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#FF6B5B] typing-dot ml-1" style={{ animationDelay: "0.36s" }} />
-                      </span>
+                  <div className="text-white/90">
+                    {m.streaming ? (
+                      <div className="whitespace-pre-wrap leading-relaxed">
+                        {m.content}
+                        <span className="inline-block ml-1 align-middle">
+                          <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#FF6B5B] typing-dot" />
+                          <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#FF6B5B] typing-dot ml-1" style={{ animationDelay: "0.18s" }} />
+                          <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#FF6B5B] typing-dot ml-1" style={{ animationDelay: "0.36s" }} />
+                        </span>
+                      </div>
+                    ) : (
+                      <Markdown>{m.content}</Markdown>
                     )}
                   </div>
 
                   {!m.streaming && m.citations && m.citations.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-4">
+                    <div className="flex flex-wrap gap-2 mt-3">
                       {m.citations.map((c, i) => (
                         <button
                           key={i}
@@ -308,7 +415,9 @@ const Chat: React.FC = () => {
                           className="inline-flex items-center gap-1.5 text-[11px] bg-white/5 border border-white/10 rounded-full px-3 py-1 text-white/70 hover:text-[#FF6B5B] hover:border-[#FF6B5B]/40 transition-all"
                         >
                           <FileText className="h-3 w-3" />
-                          {c.title}{c.section ? ` · ${c.section}` : ""}{c.page ? ` · p.${c.page}` : ""}
+                          {c.title}
+                          {c.section ? ` · ${c.section}` : ""}
+                          {c.page ? ` · p.${c.page}` : ""}
                         </button>
                       ))}
                     </div>
@@ -382,7 +491,7 @@ const Chat: React.FC = () => {
                     </div>
                   )}
 
-                  {!m.streaming && m.followups && (
+                  {!m.streaming && m.followups && m.followups.length > 0 && (
                     <div className="mt-4 flex flex-wrap gap-2">
                       {m.followups.map((f, i) => (
                         <button
