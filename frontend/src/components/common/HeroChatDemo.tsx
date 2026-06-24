@@ -57,9 +57,12 @@ export const HeroChatDemo: React.FC = () => {
   const [busy, setBusy] = useState(true);
   const endRef = useRef<HTMLDivElement>(null);
   const recRef = useRef<any>(null);
+  const seededRef = useRef(false);
 
   // Stream the seeded reply once on mount
   useEffect(() => {
+    if (seededRef.current) return;
+    seededRef.current = true;
     const reply = CANNED.leave;
     streamAssistant(reply.text, reply.citation, reply.portals);
     // eslint-disable-next-line react-hooks/exhaustive-deps
