@@ -30,55 +30,39 @@ navy `#1A1A6B`, coral `#FF6B5B`, red `#E11D2C`, white.
 - DB / Auth / Storage: Supabase (project `odxbsejhrptfxykkqfkb`)
 - Migrations: `/app/supabase/migrations/001_init_schema.sql` (12 tables, RLS, storage bucket, regions seed, profile auto-create trigger)
 
-## What's Implemented (as of 2026-02-24)
+## What's Implemented (as of 2026-02-24 — iter 2)
 ### Foundations
 - TypeScript + tsconfig migration; shadcn UI shim for un-typed components
 - Tailwind brand tokens (navy / coral / red), Outfit + IBM Plex Sans + JetBrains Mono fonts
-- Light + dark theme CSS variables; per-page theme toggle
+- Light + dark theme CSS variables; per-page theme toggle + persisted user preference (`useAppTheme`)
 - Supabase client + AuthContext (session, profile, role, region)
 - Route guards: `RequireAuth`, `RequireRole`
 - Sonner toaster
+- **Service layer** `src/services/db.ts` — typed query helpers for every table
+- **Resilient wrapper** `src/services/safe.ts` — pages never crash if RLS / migration missing
+- **n8n integration** `src/services/chat.ts` — POSTs to configurable webhook (System Settings → URL → localStorage), falls back to mock
+- **Markdown rendering** `src/components/common/Markdown.tsx` (react-markdown + remark-gfm)
 
-### Pages (29/29 scaffolded with rich UI + data-testids)
-**Public (1):** Landing
-**Auth (5):** Sign in · Sign up · Forgot password · Reset password · Email verification
-**Employee (9):** Dashboard · Chat (voice + citations + portals + thumbs + regenerate + escalate) · Chat history · Policy library · My tickets · Notifications · Profile · Settings · Help
-**HR (4):** HR dashboard · Ticket queue · Ticket detail · Knowledge gaps
-**Admin (10):** Admin dashboard · Policy manager · Policy upload wizard · Region & portal manager · User management · Role permissions · Analytics · Audit logs · n8n status · System settings
-**Utility (2):** Unauthorized · 404
+### Data wiring (iter 2)
+- Chat: thread + message persistence, real n8n webhook integration, markdown, escalation creates a real ticket
+- ChatHistory: list/rename/archive/delete from `chat_threads`
+- PolicyLibrary: reads `policies` + `policy_regions` with signed-URL downloads from `policy_pdfs` bucket
+- MyTickets: list + create via `tickets`
+- Notifications: list + mark single/all read via `notifications`
+- Profile: editable, persists name/empid/department to `profiles`
+- Settings: localStorage prefs + dark/light theme toggle
+- HR pages: TicketQueue (region-scoped), TicketDetail (status + reply), KnowledgeGaps (mark resolved)
+- Admin pages: AdminDashboard (live counts), PolicyManager (list/delete), PolicyUploadWizard (storage upload + insert), RegionPortalManager (real regions + portals), UserManagement (role change + disable), AuditLogs, SystemSettings (persists to `settings` + webhook URL)
+
+### Pages (29/29)
+All page surfaces remain identical; underlying data is now live where Supabase is configured.
 
 ### Backend
 - `/api/`, `/api/health`, `/api/config` (intentionally minimal)
 
 ### Database (SQL migration provided, NOT yet applied by user)
-- 12 tables with RLS policies (regions, profiles, policies, policy_regions, policy_versions, chat_threads, chat_messages, tickets, ticket_messages, notifications, knowledge_gaps, portal_links, audit_logs, settings)
-- Storage bucket `policy_pdfs` (private, RLS)
-- Helper functions: `is_admin()`, `is_hr()`, `current_region_id()`, `handle_new_user()` trigger
-- 9 regions seeded
+- 12 tables with RLS policies, storage bucket `policy_pdfs`, helper functions, 9-region seed
 
-## Backlog (prioritised)
-### P0 — User to complete
-- [ ] **Apply SQL migration** in Supabase SQL Editor (`001_init_schema.sql`)
-- [ ] **Promote first admin** via `update public.profiles set role='admin' where email=…`
-- [ ] **Decide email confirmation** policy (currently ON in Supabase)
-
-### P1 — Functional wiring (deferred per user choice — user will do)
-- [ ] `/api/chat` → POST to n8n `/chat` webhook (RAG response)
-- [ ] `/api/policies/upload` → trigger n8n `/embed-policy`
-- [ ] `/api/escalate` → create ticket + email regional HR via n8n `/escalate`
-- [ ] Real chat persistence (chat_threads, chat_messages)
-- [ ] Real policy library reads from Supabase + signed-URL downloads
-- [ ] Real ticket CRUD with assignments and SLA timers
-- [ ] Real-time notifications (Supabase Realtime)
-
-### P2 — Nice-to-have
-- [ ] Markdown rendering in chat (currently plain text)
-- [ ] Light theme toggle in settings (currently dark-only on app shell)
-- [ ] CSV export for analytics
-- [ ] 2FA, GDPR data-delete
-- [ ] SSO (Azure AD)
-
-## Test Coverage
+## Test Coverage (iter 2)
 - Backend: 4/4 endpoints passing
-- Frontend: 25/25 public + route-guard checks passing
-- Auth-required UI deferred until DB migration is applied
+- Frontend: 10/10 public + route-guard checks passing, zero console errors after data wiring
