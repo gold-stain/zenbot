@@ -27,7 +27,7 @@ const LandingPage: React.FC = () => {
             <Sparkles className="h-4 w-4 text-white" />
           </div>
           <div className="leading-tight">
-            <div className="font-display font-extrabold tracking-tight text-white">Zensar AI</div>
+            <div className="font-display font-extrabold tracking-tight text-white">ZenBot</div>
             <div className="text-[10px] uppercase tracking-[0.18em] text-white/45">Employee Assistant</div>
           </div>
         </Link>
@@ -235,7 +235,7 @@ const LandingPage: React.FC = () => {
 
       <footer className="relative px-6 lg:px-10 py-8 border-t border-white/[0.06]">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-white/40">
-          <div>© {new Date().getFullYear()} Zensar AI Employee Assistant</div>
+          <div>© {new Date().getFullYear()} ZenBot Employee Assistant</div>
           <div className="flex items-center gap-4">
             <Link to="/help" className="hover:text-white/70">Help</Link>
             <span className="opacity-30">·</span>

@@ -32,7 +32,7 @@ const AuthShell: React.FC<AuthShellProps> = ({
           </div>
           <div>
             <div className="font-display text-lg font-extrabold tracking-tight">
-              Zensar AI
+              ZenBot
             </div>
             <div className="text-[10px] uppercase tracking-[0.22em] text-white/50">
               Employee Assistant
@@ -82,7 +82,7 @@ const AuthShell: React.FC<AuthShellProps> = ({
             <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#FF6B5B] to-[#E11D2C] grid place-items-center">
               <Sparkles className="h-4 w-4 text-white" />
             </div>
-            <div className="font-display font-extrabold">Zensar AI</div>
+            <div className="font-display font-extrabold">ZenBot</div>
           </Link>
         </div>
 

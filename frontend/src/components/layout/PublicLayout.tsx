@@ -26,7 +26,7 @@ const PublicLayout: React.FC<PublicLayoutProps> = ({
             </div>
             <div className="leading-tight">
               <div className="font-display text-base font-extrabold tracking-tight">
-                Zensar AI
+                ZenBot
               </div>
               <div className="text-[10px] uppercase tracking-[0.2em] text-zinc-500">
                 Employee Assistant
@@ -63,7 +63,7 @@ const PublicLayout: React.FC<PublicLayoutProps> = ({
 
       <footer className="border-t border-zinc-100 bg-zinc-50/50 mt-24">
         <div className="max-w-7xl mx-auto px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-zinc-500">
-          <div>© {new Date().getFullYear()} Zensar AI Employee Assistant</div>
+          <div>© {new Date().getFullYear()} ZenBot Employee Assistant</div>
           <div className="flex items-center gap-5">
             <Link to="/help" className="hover:text-[#1A1A6B]">Help</Link>
             <span className="opacity-30">·</span>

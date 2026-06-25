@@ -311,7 +311,7 @@ const Chat: React.FC = () => {
             <Sparkles className="h-5 w-5 text-white" />
           </div>
           <div>
-            <div className="font-display text-xl font-bold leading-tight">Zensar AI</div>
+            <div className="font-display text-xl font-bold leading-tight">ZenBot</div>
             <div className="text-[11px] text-white/50 tracking-wide flex items-center gap-1.5">
               <span className={`h-1.5 w-1.5 rounded-full ${liveWebhook ? "bg-emerald-400" : "bg-amber-400"} animate-pulse`} />
               {liveWebhook ? "Connected · region-scoped" : "Demo mode · configure webhook in Admin → System"}

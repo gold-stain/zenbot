@@ -1,4 +1,4 @@
-# Zensar AI Employee Assistant — Product Requirements Document
+# ZenBot Employee Assistant — Product Requirements Document
 
 **Last updated:** 2026-02-24
 **Tech:** React 19 + TypeScript + Tailwind + shadcn UI · Supabase (Auth · Postgres · Storage) · FastAPI (minimal)

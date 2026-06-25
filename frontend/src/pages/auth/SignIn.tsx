@@ -44,7 +44,7 @@ const SignIn: React.FC = () => {
   return (
     <AuthShell
       title="Welcome back"
-      subtitle="Sign in to your Zensar AI assistant."
+      subtitle="Sign in to your ZenBot assistant."
       footer={
         <span>
           Don't have an account?{" "}

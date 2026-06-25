@@ -1,17 +1,17 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import {
   Home, MessageSquare, History, BookOpen, TicketCheck, Bell,
-  Settings as SettingsIcon, HelpCircle, User as UserIcon, Sparkles,
+  Settings as SettingsIcon, HelpCircle, User as UserIcon,
   Shield, ShieldCheck, Users as UsersIcon, BarChart3, ListChecks, Upload,
-  Activity, Globe2, KeyRound, Cog, LogOut, Menu, Search,
+  Activity, Globe2, KeyRound, Cog, LogOut, Menu, Search, X, ChevronsLeft,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Ambient } from "@/components/common/Ambient";
 import { MeshBackground } from "@/components/common/MeshBackground";
 
 type Item = { to: string; label: string; icon: React.ComponentType<{ className?: string }>; testId: string };
@@ -27,7 +27,7 @@ const employeeNav: Item[] = [
 const hrNav: Item[] = [
   { to: "/app/hr", label: "HR Dashboard", icon: ShieldCheck, testId: "nav-hr-dashboard" },
   { to: "/app/hr/queue", label: "Ticket Queue", icon: ListChecks, testId: "nav-hr-queue" },
-  { to: "/app/hr/gaps", label: "Knowledge Gaps", icon: Sparkles, testId: "nav-hr-gaps" },
+  { to: "/app/hr/gaps", label: "Knowledge Gaps", icon: Activity, testId: "nav-hr-gaps" },
 ];
 const adminNav: Item[] = [
   { to: "/app/admin", label: "Admin", icon: Shield, testId: "nav-admin" },
@@ -52,7 +52,8 @@ const AppShell: React.FC = () => {
   const { theme } = useAppTheme();
   const location = useLocation();
   const navigate = useNavigate();
-  const [open, setOpen] = React.useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
 
   useEffect(() => {
     if (theme === "dark") document.documentElement.classList.add("dark");
@@ -60,7 +61,25 @@ const AppShell: React.FC = () => {
     return () => { document.documentElement.classList.remove("dark"); };
   }, [theme]);
 
-  useEffect(() => { setOpen(false); }, [location.pathname]);
+  useEffect(() => {
+    if (isMobile) setSidebarOpen(false);
+  }, [location.pathname, isMobile]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 1024;
+      setIsMobile(mobile);
+      if (mobile) {
+        setSidebarOpen(false);
+      } else {
+        setSidebarOpen(true);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    handleResize();
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const initials =
     profile?.full_name?.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase() ||
@@ -71,7 +90,7 @@ const AppShell: React.FC = () => {
   const NavSection = ({ title, items }: { title?: string; items: Item[] }) => (
     <div className="space-y-0.5">
       {title && (
-        <div className="px-3 pt-5 pb-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/35">
+        <div className="px-4 pt-4 pb-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-white/35">
           {title}
         </div>
       )}
@@ -82,20 +101,21 @@ const AppShell: React.FC = () => {
           end={it.to === "/app/dashboard"}
           data-testid={it.testId}
           className={({ isActive }) =>
-            `group relative flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-all ${
+            `group relative flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               isActive
-                ? "bg-gradient-to-r from-[#FF6B5B]/[0.12] to-transparent text-white"
-                : "text-white/65 hover:text-white hover:bg-white/[0.04]"
+                ? "bg-gradient-to-r from-[#FF6B5B]/20 to-[#FF6B5B]/5 text-white shadow-lg shadow-[#FF6B5B]/10"
+                : "text-white/60 hover:text-white hover:bg-white/[0.05]"
             }`
           }
         >
           {({ isActive }) => (
             <>
               {isActive && (
-                <span className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full bg-gradient-to-b from-[#FF6B5B] to-[#E11D2C]" />
+                <span className="absolute left-0 top-2 bottom-2 w-1 rounded-full bg-gradient-to-b from-[#FF6B5B] to-[#E11D2C]" />
               )}
-              <it.icon className={`h-4 w-4 shrink-0 ${isActive ? "text-[#FF6B5B]" : ""}`} />
-              <span className="truncate">{it.label}</span>
+              <it.icon className={`h-4 w-4 shrink-0 transition-colors ${isActive ? "text-[#FF6B5B]" : "text-white/50 group-hover:text-white"}`} />
+              <span className="truncate flex-1">{it.label}</span>
+              {isActive && <span className="w-1.5 h-1.5 rounded-full bg-[#FF6B5B]" />}
             </>
           )}
         </NavLink>
@@ -103,97 +123,182 @@ const AppShell: React.FC = () => {
     </div>
   );
 
-  const crumb = location.pathname.split("/").filter(Boolean).slice(-1)[0] || "dashboard";
-
   return (
-    <div className="min-h-screen text-white relative">
+    <div className="min-h-screen text-white relative flex">
       <MeshBackground variant="dashboard" />
 
-      {/* Sidebar */}
-      <aside
-        className={`fixed lg:sticky top-0 left-0 z-40 h-screen w-72 shrink-0 border-r border-white/[0.06] glass-dark transition-transform lg:translate-x-0 ${
-          open ? "translate-x-0" : "-translate-x-full"
-        }`}
-        data-testid="sidebar"
-      >
-        <div className="flex h-full flex-col">
-          <div className="flex items-center gap-2.5 px-5 h-16 border-b border-white/[0.06]">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#FF6B5B] to-[#E11D2C] grid place-items-center shadow-[0_0_24px_rgba(255,107,91,0.45)]">
-              <Sparkles className="h-4 w-4 text-white" />
-            </div>
-            <div className="leading-tight">
-              <div className="font-display font-extrabold tracking-tight">Zensar AI</div>
-              <div className="text-[9px] text-white/45 uppercase tracking-[0.24em]">Assistant · v1</div>
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto scrollbar-thin px-3 py-3">
-            <NavSection items={employeeNav} />
-            {(role === "hr" || role === "admin") && <NavSection title="HR" items={hrNav} />}
-            {role === "admin" && <NavSection title="Admin" items={adminNav} />}
-            <NavSection title="Account" items={accountNav} />
-          </div>
-
-          <div className="border-t border-white/[0.06] p-3">
-            <NavLink to="/app/profile" data-testid="sidebar-profile-link"
-              className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-white/[0.04] transition-colors">
-              <Avatar className="h-9 w-9 ring-1 ring-white/10">
-                <AvatarFallback className="bg-gradient-to-br from-[#1A1A6B] to-[#FF6B5B] text-white text-xs font-semibold">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium truncate">
-                  {profile?.full_name || profile?.email || "User"}
-                </div>
-                <Badge className="h-4 mt-0.5 px-1.5 text-[9px] uppercase tracking-wider bg-white/[0.08] text-white/80 border-0">
-                  {role}
-                </Badge>
-              </div>
-              <Button size="icon" variant="ghost"
-                onClick={(e) => { e.preventDefault(); handleSignOut(); }}
-                data-testid="sidebar-signout-btn"
-                className="h-8 w-8 text-white/60 hover:text-white hover:bg-white/10">
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </NavLink>
-          </div>
-        </div>
-      </aside>
-
-      {open && (
-        <div className="fixed inset-0 z-30 bg-black/70 lg:hidden backdrop-blur-sm" onClick={() => setOpen(false)} aria-hidden />
+      {/* Mobile Overlay */}
+      {sidebarOpen && isMobile && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 z-30 bg-black/50 lg:hidden backdrop-blur-sm"
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden
+        />
       )}
 
-      {/* Main */}
-      <div className="flex-1 min-h-screen flex flex-col">
-        <header className="sticky top-0 z-20 h-16 flex items-center justify-between px-4 lg:px-8 border-b border-white/[0.06] glass-dark">
-          <button data-testid="sidebar-toggle" className="lg:hidden p-2 rounded-lg hover:bg-white/5" onClick={() => setOpen(true)}>
-            <Menu className="h-5 w-5" />
-          </button>
-          <div className="hidden lg:flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-xs text-white/50 cursor-pointer hover:text-white/80 transition" data-testid="topbar-search">
-              <Search className="h-3.5 w-3.5" /> Search anything
-              <kbd className="text-[10px] font-mono ml-2 px-1.5 py-0.5 rounded bg-white/5">⌘K</kbd>
+      {/* Sidebar - ANIMATES WIDTH ON DESKTOP */}
+      <motion.aside
+        initial={false}
+        animate={{
+          width: isMobile ? (sidebarOpen ? 288 : 0) : (sidebarOpen ? 288 : 0),
+          x: isMobile ? (sidebarOpen ? 0 : -288) : 0,
+        }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        className={`${
+          isMobile ? "fixed top-0 left-0 z-40 h-screen" : "relative min-h-screen"
+        } border-r border-white/[0.08] glass-dark flex flex-col overflow-hidden shrink-0`}
+        data-testid="sidebar"
+      >
+        {/* Header with Logo AND Toggle Button */}
+        <div className="flex items-center justify-between px-6 h-20 border-b border-white/[0.08] shrink-0 w-72">
+          <div className="flex items-center gap-3 flex-1">
+            <img
+              src="/zenbot.png"
+              alt="ZenBot Logo"
+              className="h-10 w-10 rounded-xl object-cover"
+            />
+            <div className="leading-tight min-w-0">
+              <div className="font-display font-bold text-base tracking-tight">ZenBot</div>
+              <div className="text-[8px] text-white/40 uppercase tracking-[0.22em]">Assistant</div>
             </div>
-            <span className="text-xs text-white/35">/</span>
-            <span className="text-xs text-white/70 capitalize">{crumb}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge className="bg-white/[0.05] text-white/80 border border-white/[0.08] hidden sm:inline-flex" data-testid="topbar-region-badge">
-              <Globe2 className="h-3 w-3 mr-1.5" />
+
+          {/* Toggle Button - INSIDE SIDEBAR HEADER */}
+          {!isMobile && (
+            <motion.button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="p-2 hover:bg-white/10 rounded-lg transition text-white/60 hover:text-[#FF6B5B] ml-2 shrink-0"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              data-testid="sidebar-toggle"
+              title="Collapse Sidebar"
+            >
+              <ChevronsLeft className="h-5 w-5" />
+            </motion.button>
+          )}
+
+          {/* Mobile Close Button */}
+          {isMobile && (
+            <motion.button
+              onClick={() => setSidebarOpen(false)}
+              className="p-2 hover:bg-white/10 rounded-lg transition text-white/60 hover:text-white ml-2 shrink-0"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <X className="h-5 w-5" />
+            </motion.button>
+          )}
+        </div>
+
+        {/* Navigation */}
+        <div className="flex-1 px-3 py-3 space-y-1 overflow-hidden w-72">
+          <NavSection items={employeeNav} />
+          {(role === "hr" || role === "admin") && <NavSection title="HR" items={hrNav} />}
+          {role === "admin" && <NavSection title="Admin" items={adminNav} />}
+          <NavSection title="Account" items={accountNav} />
+        </div>
+
+        {/* User Profile - Sticky at Bottom */}
+        <div className="border-t border-white/[0.08] p-4 shrink-0 w-72">
+          <NavLink
+            to="/app/profile"
+            data-testid="sidebar-profile-link"
+            className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-white/[0.05] transition-colors group"
+          >
+            <Avatar className="h-10 w-10 ring-1 ring-white/10">
+              <AvatarFallback className="bg-gradient-to-br from-[#1A1A6B] to-[#FF6B5B] text-white text-xs font-semibold">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-semibold text-white truncate">
+                {profile?.full_name || profile?.email || "User"}
+              </div>
+              <Badge className="h-5 mt-1 px-2 text-[8px] uppercase tracking-wider bg-white/[0.08] text-white/70 border-0 w-fit">
+                {role}
+              </Badge>
+            </div>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={(e) => { e.preventDefault(); handleSignOut(); }}
+              data-testid="sidebar-signout-btn"
+              className="h-9 w-9 text-white/50 hover:text-[#FF6B5B] hover:bg-white/10 transition shrink-0"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </NavLink>
+        </div>
+      </motion.aside>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col relative z-10">
+        {/* Header */}
+        <header className="sticky top-0 z-20 h-20 flex items-center justify-between px-6 lg:px-10 border-b border-white/[0.08] glass-dark">
+          {/* Left Side - Sidebar Open Button (shows when sidebar is collapsed) */}
+          <div className="flex items-center gap-4">
+            {!isMobile && !sidebarOpen && (
+              <motion.button
+                onClick={() => setSidebarOpen(true)}
+                className="p-2 hover:bg-white/10 rounded-lg transition text-white/60 hover:text-[#FF6B5B]"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                data-testid="sidebar-open-button"
+                title="Open Sidebar"
+              >
+                <Menu className="h-5 w-5" />
+              </motion.button>
+            )}
+
+            {/* Mobile Menu Button */}
+            {isMobile && (
+              <motion.button
+                onClick={() => setSidebarOpen(true)}
+                className="p-2.5 hover:bg-white/10 rounded-lg transition text-white/60 hover:text-white"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                data-testid="mobile-menu-toggle"
+              >
+                <Menu className="h-5 w-5" />
+              </motion.button>
+            )}
+
+            {/* Search Bar */}
+            <div className="flex items-center gap-3 flex-1 ml-4">
+              <div className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06] text-xs text-white/50 cursor-pointer hover:text-white/80 transition flex-1">
+                <Search className="h-4 w-4" />
+                <span className="hidden lg:inline">Search anything</span>
+                <kbd className="text-[9px] font-mono ml-auto px-2 py-1 rounded bg-white/5 text-white/40 hidden lg:inline">⌘K</kbd>
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT SIDE - Badges & Notifications */}
+          <div className="flex items-center gap-3 ml-auto">
+            <Badge className="bg-white/[0.05] text-white/70 border border-white/[0.08] hidden sm:inline-flex text-xs px-3 py-1.5 font-medium" data-testid="topbar-region-badge">
+              <Globe2 className="h-3.5 w-3.5 mr-2" />
               {profile?.region_id ? "Region set" : "No region"}
             </Badge>
-            <Button size="sm" variant="ghost" className="relative text-white/70 hover:text-white hover:bg-white/5"
-              onClick={() => navigate("/app/notifications")} data-testid="topbar-notifications">
-              <Bell className="h-4 w-4" />
-              <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-[#FF6B5B] pulse-soft" />
-            </Button>
+            <motion.button
+              onClick={() => navigate("/app/notifications")}
+              className="relative p-2.5 hover:bg-white/10 rounded-lg transition text-white/60 hover:text-white"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              data-testid="topbar-notifications"
+            >
+              <Bell className="h-5 w-5" />
+              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[#FF6B5B] animate-pulse" />
+            </motion.button>
           </div>
         </header>
 
-        <main className="flex-1 px-4 sm:px-6 lg:px-10 py-6 lg:py-10 4xl:px-16 relative z-10">
-          <div className="container-fluid">
+        {/* Main Content */}
+        <main className="flex-1 px-6 sm:px-8 lg:px-10 py-8 relative z-10 overflow-y-auto">
+          <div className="max-w-7xl mx-auto">
             <Outlet />
           </div>
         </main>

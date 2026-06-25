@@ -47,7 +47,7 @@ const Profile: React.FC = () => {
       <PageHeader
         eyebrow="Account"
         title="Profile"
-        subtitle="Your identity inside Zensar AI."
+        subtitle="Your identity inside ZenBot."
         actions={
           !editing ? (
             <Button variant="ghost" onClick={() => setEditing(true)} className="text-white/80 hover:bg-white/5" data-testid="profile-edit-btn">

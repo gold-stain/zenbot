@@ -1,5 +1,5 @@
 -- ============================================================================
--- Zensar AI Employee Assistant — Initial Schema Migration
+-- ZenBot Employee Assistant — Initial Schema Migration
 -- Tables, RLS policies, helper functions, region seed, storage bucket
 -- Run this in Supabase SQL Editor (or via supabase db push)
 -- ============================================================================

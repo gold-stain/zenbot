@@ -1,4 +1,4 @@
-"""Backend API tests for Zensar AI Employee Assistant.
+"""Backend API tests for ZenBot Employee Assistant.
 Tests three minimal endpoints: /api/, /api/health, /api/config.
 """
 import os

@@ -1,5 +1,5 @@
 """
-Zensar AI Employee Assistant — Backend
+ZenBot Employee Assistant — Backend
 Intentionally minimal: the user is wiring most server logic themselves.
 This file exposes a health endpoint and a Supabase config endpoint so
 the frontend / future integrations can verify connectivity.
@@ -14,7 +14,7 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
 
-app = FastAPI(title="Zensar AI Employee Assistant API")
+app = FastAPI(title="ZenBot Employee Assistant API")
 api_router = APIRouter(prefix="/api")
 
 

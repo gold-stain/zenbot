@@ -17,7 +17,7 @@ const SystemSettings: React.FC = () => {
   const [temp, setTemp] = useState([0.4]);
   const [conf, setConf] = useState([0.65]);
   const [webhook, setWebhook] = useState(getChatWebhookUrl());
-  const [brand, setBrand] = useState("Zensar AI");
+  const [brand, setBrand] = useState("ZenBot");
 
   useEffect(() => {
     (async () => {
@@ -26,7 +26,7 @@ const SystemSettings: React.FC = () => {
         setModel(v.model || "gpt-4o-mini");
         setTemp([v.temperature ?? 0.4]);
         setConf([v.confidence_threshold ?? 0.65]);
-        setBrand(v.brand_name || "Zensar AI");
+        setBrand(v.brand_name || "ZenBot");
         if (v.chat_webhook_url) {
           setWebhook(v.chat_webhook_url);
           setChatWebhookUrl(v.chat_webhook_url);

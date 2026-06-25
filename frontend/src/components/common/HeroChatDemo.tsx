@@ -142,7 +142,7 @@ export const HeroChatDemo: React.FC = () => {
             <Sparkles className="h-3.5 w-3.5 text-white" />
           </div>
           <div className="leading-tight">
-            <div className="text-xs font-semibold text-white">Zensar AI</div>
+            <div className="text-xs font-semibold text-white">ZenBot</div>
             <div className="text-[10px] text-white/45 flex items-center gap-1">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 pulse-soft" /> Live demo
             </div>

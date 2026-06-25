@@ -1,4 +1,4 @@
-# Zensar AI Employee Assistant
+# ZenBot Employee Assistant
 
 A region-aware HR copilot for Zensar. Three roles (Employee · HR · Admin), nine regions, voice in & out, source-cited replies, and human escalation when it matters.
 
