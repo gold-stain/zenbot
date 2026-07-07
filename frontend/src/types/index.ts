@@ -28,6 +28,23 @@ export interface Profile {
   role: Role;
   region_id: string | null;
   avatar_url?: string | null;
+  preferred_name?: string | null;
+  pronouns?: string | null;
+  job_title?: string | null;
+  manager_name?: string | null;
+  manager_email?: string | null;
+  phone?: string | null;
+  work_location?: string | null;
+  timezone?: string | null;
+  language?: string | null;
+  start_date?: string | null;
+  employment_type?: string | null;
+  cost_center?: string | null;
+  skills?: string[] | null;
+  working_hours?: string | null;
+  emergency_contact_name?: string | null;
+  emergency_contact_phone?: string | null;
+  bio?: string | null;
   created_at?: string;
 }
 

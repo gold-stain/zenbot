@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Eye, EyeOff, Loader2, MailCheck } from "lucide-react";
+import { Eye, EyeOff, Loader2, Lock, MailCheck, MapPin } from "lucide-react";
 import AuthShell from "@/components/layout/AuthShell";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,15 +16,15 @@ import {
 import { useAuth } from "@/context/AuthContext";
 
 const REGIONS = [
-  { code: "IN", name: "India", flag: "🇮🇳" },
-  { code: "US", name: "United States", flag: "🇺🇸" },
-  { code: "UK", name: "United Kingdom", flag: "🇬🇧" },
-  { code: "ZA", name: "South Africa", flag: "🇿🇦" },
-  { code: "AT", name: "Austria", flag: "🇦🇹" },
-  { code: "SG", name: "Singapore", flag: "🇸🇬" },
-  { code: "CA", name: "Canada", flag: "🇨🇦" },
-  { code: "IE", name: "Ireland", flag: "🇮🇪" },
-  { code: "GLOBAL", name: "Global", flag: "🌐" },
+  { code: "IN", name: "India" },
+  { code: "US", name: "United States" },
+  { code: "UK", name: "United Kingdom" },
+  { code: "ZA", name: "South Africa" },
+  { code: "AT", name: "Austria" },
+  { code: "SG", name: "Singapore" },
+  { code: "CA", name: "Canada" },
+  { code: "IE", name: "Ireland" },
+  { code: "GLOBAL", name: "Global" },
 ];
 
 const DEPARTMENTS = [
@@ -41,6 +41,29 @@ const DEPARTMENTS = [
   "Legal & Compliance",
   "Other",
 ];
+
+function detectRegionCode() {
+  try {
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+    if (timeZone.includes("Kolkata") || timeZone.includes("Calcutta")) return "IN";
+    if (timeZone.includes("London")) return "UK";
+    if (timeZone.includes("Johannesburg")) return "ZA";
+    if (timeZone.includes("Vienna")) return "AT";
+    if (timeZone.includes("Singapore")) return "SG";
+    if (timeZone.includes("Toronto") || timeZone.includes("Vancouver")) return "CA";
+    if (timeZone.includes("Dublin")) return "IE";
+    if (
+      timeZone.includes("New_York") ||
+      timeZone.includes("Los_Angeles") ||
+      timeZone.includes("Chicago")
+    ) {
+      return "US";
+    }
+    return "GLOBAL";
+  } catch {
+    return "GLOBAL";
+  }
+}
 
 const SignUp: React.FC = () => {
   useEffect(() => {
@@ -60,23 +83,11 @@ const SignUp: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
 
-  // Try to auto-detect region from browser
   useEffect(() => {
-    try {
-      const locale = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
-      if (locale.includes("Kolkata") || locale.includes("Calcutta")) setRegionCode("IN");
-      else if (locale.includes("London")) setRegionCode("UK");
-      else if (locale.includes("Johannesburg")) setRegionCode("ZA");
-      else if (locale.includes("Vienna")) setRegionCode("AT");
-      else if (locale.includes("Singapore")) setRegionCode("SG");
-      else if (locale.includes("Toronto") || locale.includes("Vancouver")) setRegionCode("CA");
-      else if (locale.includes("Dublin")) setRegionCode("IE");
-      else if (locale.includes("New_York") || locale.includes("Los_Angeles") || locale.includes("Chicago")) setRegionCode("US");
-      else setRegionCode("GLOBAL");
-    } catch {
-      setRegionCode("GLOBAL");
-    }
+    setRegionCode(detectRegionCode());
   }, []);
+
+  const detectedRegion = REGIONS.find((region) => region.code === regionCode);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -175,19 +186,19 @@ const SignUp: React.FC = () => {
         <div className="grid sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <Label>Region</Label>
-            <Select value={regionCode} onValueChange={setRegionCode}>
-              <SelectTrigger className="h-11 rounded-xl" data-testid="signup-region-trigger">
-                <SelectValue placeholder="Select region" />
-              </SelectTrigger>
-              <SelectContent>
-                {REGIONS.map((r) => (
-                  <SelectItem key={r.code} value={r.code} data-testid={`signup-region-${r.code}`}>
-                    <span className="mr-2">{r.flag}</span>
-                    {r.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div
+              className="h-11 rounded-xl border border-zinc-200 bg-zinc-50 px-3 flex items-center justify-between text-sm"
+              data-testid="signup-region-locked"
+            >
+              <span className="flex items-center gap-2 text-zinc-800">
+                <MapPin className="h-4 w-4 text-[#FF6B5B]" />
+                {detectedRegion ? `${detectedRegion.code} - ${detectedRegion.name}` : "Detecting region"}
+              </span>
+              <Lock className="h-4 w-4 text-zinc-400" />
+            </div>
+            <p className="text-[11px] text-zinc-500">
+              Auto-detected for policy routing. Admins manage region changes.
+            </p>
           </div>
           <div className="space-y-1.5">
             <Label>Department</Label>
